@@ -2,3 +2,11 @@
 /edgeOverlays.jar
 /EdgeOverlayNetworks.iml
 /target/
+/.idea/.gitignore
+/.idea/compiler.xml
+/.idea/EdgeOverlayNetworks.iml
+/.idea/encodings.xml
+/.idea/jarRepositories.xml
+/.idea/misc.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/vcs.xml
