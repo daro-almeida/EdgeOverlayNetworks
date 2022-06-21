@@ -1,8 +1,8 @@
 package protocols.tester;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.dissemination.plumtree.requests.BroadcastRequest;
@@ -76,7 +76,7 @@ public class DisseminationConsumer extends GenericProtocol {
     }
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
         int disseminationPeriod = Integer.parseInt(props.getProperty("disseminationPeriod", "2000"));
         if(Integer.parseInt(props.getProperty("layer")) == 0) {
             setupPeriodicTimer(new Timer(timerid), 60000, disseminationPeriod);

@@ -1,6 +1,6 @@
 package protocols.overlays.hyparview.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.util.*;
 

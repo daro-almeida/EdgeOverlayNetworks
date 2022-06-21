@@ -1,6 +1,6 @@
 package protocols.overlays.xbot.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.hyparview.utils.View;
 
 import java.util.HashSet;
@@ -12,7 +12,7 @@ public class MonitoredView extends View {
     private final Oracle oracle;
     private final boolean isPassive;
 
-    private Set<Host> pending;
+    private final Set<Host> pending;
 
     public MonitoredView(int capacity, Host self, Random rnd, Oracle oracle, boolean isPassive) {
         super(capacity, self, rnd);

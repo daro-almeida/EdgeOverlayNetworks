@@ -1,8 +1,8 @@
 package protocols.overlays.tman.utils.profile;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import utils.HostComp;
@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class LayerIPAddrProfile extends Profile {
 
-    private static Logger logger = LogManager.getLogger(LayerIPAddrProfile.class);
+    private static final Logger logger = LogManager.getLogger(LayerIPAddrProfile.class);
 
     public static final short PROFILE_ID = 2;
 
@@ -22,7 +22,7 @@ public class LayerIPAddrProfile extends Profile {
     private final Host address;
     private final short layer;
 
-    IHostComparator comparator;
+    final IHostComparator comparator;
 
     public LayerIPAddrProfile(Host target, short targetLayer, Host address, short layer) {
         super(PROFILE_ID);
@@ -57,8 +57,7 @@ public class LayerIPAddrProfile extends Profile {
             LayerIPAddrProfile layerIPAddrProfile = (LayerIPAddrProfile) o;
             if(layerIPAddrProfile.address != null && this.address != null) {
                 int layerScore = Math.abs(layer-layerIPAddrProfile.layer);
-                int score = comparator.compareScore(address, ((LayerIPAddrProfile) o).address)*(layerScore+1);
-                return score;
+				return comparator.compareScore(address, ((LayerIPAddrProfile) o).address)*(layerScore+1);
             } else if(this.address == null) {
                 return Integer.MAX_VALUE;
             } else

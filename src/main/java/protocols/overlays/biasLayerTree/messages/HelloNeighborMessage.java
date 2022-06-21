@@ -1,9 +1,9 @@
 package protocols.overlays.biasLayerTree.messages;
 
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 import protocols.overlays.biasLayerTree.utils.Node;
 
 import java.io.IOException;
@@ -13,7 +13,7 @@ public class HelloNeighborMessage extends ProtoMessage {
 
     public static final short MSG_CODE = 404;
 
-    private Node neighbour;
+    private final Node neighbour;
 
     public HelloNeighborMessage(Node neighbour) {
         super(MSG_CODE);

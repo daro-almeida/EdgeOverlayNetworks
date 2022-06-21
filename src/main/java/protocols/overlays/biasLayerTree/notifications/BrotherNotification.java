@@ -1,16 +1,16 @@
 package protocols.overlays.biasLayerTree.notifications;
 
 
-import babel.generic.ProtoNotification;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class BrotherNotification extends ProtoNotification {
 
     public static final short NOTIFICATION_ID = 404;
     public static final String NOTIFICATION_NAME = "Brother Change";
 
-    private Host oldBrother;
-    private Host newBrother;
+    private final Host oldBrother;
+    private final Host newBrother;
 
     public BrotherNotification(Host oldBrother, Host newBrother) {
         super(NOTIFICATION_ID);

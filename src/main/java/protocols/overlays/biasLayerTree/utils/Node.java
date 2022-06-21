@@ -1,8 +1,8 @@
 package protocols.overlays.biasLayerTree.utils;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import utils.HostComp;
 import utils.IHostComparator;
 
@@ -11,8 +11,8 @@ import java.util.Comparator;
 
 public class Node implements Comparable<Node> {
 
-    private Host address;
-    private short layer;
+    private final Host address;
+    private final short layer;
     private int age;
     private long timestamp;
     private boolean dead;
@@ -124,7 +124,7 @@ public class Node implements Comparable<Node> {
     }
 
     private static class NodeDistanceComparator implements Comparator<Node> {
-        IHostComparator hostComparator;
+        final IHostComparator hostComparator;
         public NodeDistanceComparator(Host host) {
             hostComparator = HostComp.host_comp.getInstance(host);
         }
@@ -141,7 +141,7 @@ public class Node implements Comparable<Node> {
     }
 
     private static class NodeInvertedDistanceComparator implements Comparator<Node> {
-        NodeDistanceComparator comparator;
+        final NodeDistanceComparator comparator;
         public NodeInvertedDistanceComparator(Host host) {
             comparator = new NodeDistanceComparator(host);
         }
@@ -155,7 +155,7 @@ public class Node implements Comparable<Node> {
 
 
     private static class NodeInvertedAgeComparator implements Comparator<Node> {
-        NodeAgeComparator comparator;
+        final NodeAgeComparator comparator;
         public NodeInvertedAgeComparator(){
             this.comparator = new NodeAgeComparator();
         }
@@ -178,7 +178,7 @@ public class Node implements Comparable<Node> {
     }
 
     private static class NodeInvertedAgeAndDistanceComparator implements Comparator<Node> {
-        NodeAgeAndDistanceComparator comparator;
+        final NodeAgeAndDistanceComparator comparator;
         public NodeInvertedAgeAndDistanceComparator(Host target) {
             this.comparator = new NodeAgeAndDistanceComparator(target);
         }
@@ -190,7 +190,7 @@ public class Node implements Comparable<Node> {
     }
 
     private static class NodeAgeAndDistanceComparator implements Comparator<Node> {
-        IHostComparator hostComparator;
+        final IHostComparator hostComparator;
         public NodeAgeAndDistanceComparator(Host target) {
             hostComparator = HostComp.host_comp.getInstance(target);
         }
@@ -207,7 +207,7 @@ public class Node implements Comparable<Node> {
         }
     }
 
-    public static ISerializer<Node> serializer = new ISerializer<Node>() {
+    public static final ISerializer<Node> serializer = new ISerializer<Node>() {
         @Override
         public void serialize(Node node, ByteBuf out) throws IOException {
             out.writeShort(node.layer);

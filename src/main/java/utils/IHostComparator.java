@@ -1,6 +1,6 @@
 package utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.net.InetAddress;
 import java.util.Comparator;
@@ -75,17 +75,14 @@ public interface IHostComparator extends Comparator<Host> {
 
     class HostPortComparator implements IHostComparator {
 
-        private Host target;
-
-        private short targetId;
+		private short targetId;
 
         public HostPortComparator(){
 
-        };
+        }
 
-        private HostPortComparator(Host target) {
-            this.target = target;
-            targetId = extractId(this.target.getPort());
+		private HostPortComparator(Host target) {
+			targetId = extractId(target.getPort());
         }
 
         //port numbers are assumed to be in the format 10lid

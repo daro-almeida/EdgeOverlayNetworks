@@ -1,8 +1,8 @@
 package protocols.overlays.biasLayerTree.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 import protocols.overlays.biasLayerTree.utils.Node;
 
 import java.io.IOException;
@@ -11,9 +11,9 @@ public class FatherMessage extends ProtoMessage {
 
     public static final short MSG_CODE = 406;
 
-    private Node oldFather;
+    private final Node oldFather;
     private Node newFather;
-    private Node child;
+    private final Node child;
 
 
     public FatherMessage(Node oldFather, Node newFather, Node child) {
@@ -48,7 +48,7 @@ public class FatherMessage extends ProtoMessage {
         this.newFather = newFather;
     }
 
-    public static ISerializer<FatherMessage> serializer = new ISerializer<FatherMessage>() {
+    public static final ISerializer<FatherMessage> serializer = new ISerializer<FatherMessage>() {
         @Override
         public void serialize(FatherMessage fatherMessage, ByteBuf out) throws IOException {
             Node.serializer.serialize(fatherMessage.oldFather, out);

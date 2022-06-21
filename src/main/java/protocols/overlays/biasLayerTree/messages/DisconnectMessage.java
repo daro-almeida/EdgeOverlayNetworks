@@ -1,8 +1,8 @@
 package protocols.overlays.biasLayerTree.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 import protocols.overlays.biasLayerTree.utils.Node;
 
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.io.IOException;
 public class DisconnectMessage extends ProtoMessage {
     public static final short MSG_CODE = 407;
 
-    private Node node;
+    private final Node node;
 
     public DisconnectMessage(Node node) {
         super(MSG_CODE);
@@ -28,7 +28,7 @@ public class DisconnectMessage extends ProtoMessage {
         return node;
     }
 
-    public static ISerializer<DisconnectMessage> serializer = new ISerializer<DisconnectMessage>() {
+    public static final ISerializer<DisconnectMessage> serializer = new ISerializer<DisconnectMessage>() {
         @Override
         public void serialize(DisconnectMessage disconnectMessage, ByteBuf out) throws IOException {
             Node.serializer.serialize(disconnectMessage.node, out);

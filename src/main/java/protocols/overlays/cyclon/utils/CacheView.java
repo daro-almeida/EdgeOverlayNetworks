@@ -1,8 +1,7 @@
 package protocols.overlays.cyclon.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -14,9 +13,9 @@ public class CacheView {
     protected final Host self;
     private final Queue<AgedHost> ordered;
 
-    private class AgedHost {
-        private Host h;
-        private MutableInt age;
+    private static class AgedHost {
+        private final Host h;
+        private final MutableInt age;
         private AgedHost(Host h, MutableInt age) {
             this.age = age;
             this.h = h;

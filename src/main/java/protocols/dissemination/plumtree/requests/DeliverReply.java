@@ -1,6 +1,6 @@
 package protocols.dissemination.plumtree.requests;
 
-import babel.generic.ProtoReply;
+import pt.unl.fct.di.novasys.babel.generic.ProtoReply;
 
 public class DeliverReply extends ProtoReply {
 

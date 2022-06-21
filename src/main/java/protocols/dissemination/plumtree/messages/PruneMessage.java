@@ -1,8 +1,8 @@
 package protocols.dissemination.plumtree.messages;
 
-import babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 
@@ -19,14 +19,14 @@ public class PruneMessage extends ProtoMessage {
         super(MSG_ID);
     }
 
-    public static ISerializer<PruneMessage> serializer = new ISerializer<PruneMessage>() {
+    public static final ISerializer<PruneMessage> serializer = new ISerializer<PruneMessage>() {
         @Override
-        public void serialize(PruneMessage pruneMessage, ByteBuf out) throws IOException {
+        public void serialize(PruneMessage pruneMessage, ByteBuf out) {
 
         }
 
         @Override
-        public PruneMessage deserialize(ByteBuf in) throws IOException {
+        public PruneMessage deserialize(ByteBuf in) {
             return new PruneMessage();
         }
     };

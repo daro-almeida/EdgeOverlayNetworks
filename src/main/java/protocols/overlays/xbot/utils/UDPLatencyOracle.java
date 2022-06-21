@@ -1,7 +1,6 @@
 package protocols.overlays.xbot.utils;
 
-import io.netty.buffer.ByteBuf;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;

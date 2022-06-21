@@ -1,6 +1,6 @@
 package protocols.dissemination.plumtree.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

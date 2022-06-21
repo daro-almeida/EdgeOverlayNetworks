@@ -1,6 +1,6 @@
 package protocols.overlays.xbot.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;

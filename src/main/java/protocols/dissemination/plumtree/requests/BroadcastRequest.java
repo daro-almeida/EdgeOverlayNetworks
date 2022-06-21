@@ -1,6 +1,6 @@
 package protocols.dissemination.plumtree.requests;
 
-import babel.generic.ProtoRequest;
+import pt.unl.fct.di.novasys.babel.generic.ProtoRequest;
 
 public class BroadcastRequest extends ProtoRequest {
 

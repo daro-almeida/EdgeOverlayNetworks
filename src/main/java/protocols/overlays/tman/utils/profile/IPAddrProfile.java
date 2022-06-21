@@ -1,8 +1,8 @@
 package protocols.overlays.tman.utils.profile;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import utils.HostComp;
 
 import java.io.IOException;

@@ -1,8 +1,8 @@
 package protocols.dissemination.plumtree.messages;
 
-import babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 
@@ -35,15 +35,15 @@ public class GraftMessage extends ProtoMessage {
         return round;
     }
 
-    public static ISerializer<GraftMessage> serializer = new ISerializer<GraftMessage>() {
+    public static final ISerializer<GraftMessage> serializer = new ISerializer<GraftMessage>() {
         @Override
-        public void serialize(GraftMessage graftMessage, ByteBuf out) throws IOException {
+        public void serialize(GraftMessage graftMessage, ByteBuf out) {
             out.writeInt(graftMessage.mid);
             out.writeInt(graftMessage.round);
         }
 
         @Override
-        public GraftMessage deserialize(ByteBuf in) throws IOException {
+        public GraftMessage deserialize(ByteBuf in) {
             return new GraftMessage(in.readInt(), in.readInt());
         }
     };

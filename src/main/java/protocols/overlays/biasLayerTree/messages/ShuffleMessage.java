@@ -1,8 +1,8 @@
 package protocols.overlays.biasLayerTree.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 import protocols.overlays.biasLayerTree.utils.LayeredView;
 
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.io.IOException;
 public class ShuffleMessage extends ProtoMessage {
     public static final short MSG_CODE = 409;
 
-    private LayeredView sample;
+    private final LayeredView sample;
 
     public ShuffleMessage(LayeredView sample) {
         super(MSG_CODE);
@@ -28,7 +28,7 @@ public class ShuffleMessage extends ProtoMessage {
         return sample;
     }
 
-    public static ISerializer<ShuffleMessage> serializer = new ISerializer<ShuffleMessage>() {
+    public static final ISerializer<ShuffleMessage> serializer = new ISerializer<ShuffleMessage>() {
         @Override
         public void serialize(ShuffleMessage shuffleMessage, ByteBuf out) throws IOException {
             LayeredView.serializer.serialize(shuffleMessage.sample, out);

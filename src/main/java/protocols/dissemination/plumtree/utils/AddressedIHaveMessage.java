@@ -1,11 +1,11 @@
 package protocols.dissemination.plumtree.utils;
 
-import network.data.Host;
 import protocols.dissemination.plumtree.messages.IHaveMessage;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class AddressedIHaveMessage {
-    public IHaveMessage msg;
-    public Host to;
+    public final IHaveMessage msg;
+    public final Host to;
 
     public AddressedIHaveMessage(IHaveMessage msg, Host to) {
         this.msg = msg;

@@ -1,18 +1,18 @@
 package protocols.overlays.biasLayerTree.utils;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 import java.util.*;
 
 public class LayeredView {
 
-    private NavigableMap<Short, Map<Host, Node>> layeredNodes;
+    private final NavigableMap<Short, Map<Host, Node>> layeredNodes;
 
     private int size;
-    private int capacity;
+    private final int capacity;
     private short baseLayer;
 
 
@@ -222,7 +222,7 @@ public class LayeredView {
         return flatView().containsKey(host);
     }
 
-    public static ISerializer<LayeredView> serializer = new ISerializer<LayeredView>() {
+    public static final ISerializer<LayeredView> serializer = new ISerializer<LayeredView>() {
         @Override
         public void serialize(LayeredView layeredView, ByteBuf out) throws IOException {
             out.writeShort(layeredView.baseLayer);

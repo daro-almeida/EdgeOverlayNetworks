@@ -1,8 +1,8 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.net.UnknownHostException;
 
@@ -26,7 +26,7 @@ public class JoinMessage extends ProtoMessage {
         }
 
         @Override
-        public JoinMessage deserialize(ByteBuf in) throws UnknownHostException {
+        public JoinMessage deserialize(ByteBuf in) {
             return new JoinMessage();
         }
     };

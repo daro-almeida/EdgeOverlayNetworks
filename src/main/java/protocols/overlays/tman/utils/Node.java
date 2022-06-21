@@ -1,8 +1,8 @@
 package protocols.overlays.tman.utils;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.profile.Profile;
 
 import java.io.IOException;
@@ -51,7 +51,7 @@ public class Node {
         return host.hashCode();
     }
 
-    public static ISerializer<Node> serializer = new ISerializer<Node>() {
+    public static final ISerializer<Node> serializer = new ISerializer<Node>() {
         @Override
         public void serialize(Node node, ByteBuf out) throws IOException {
             Host.serializer.serialize(node.host, out);

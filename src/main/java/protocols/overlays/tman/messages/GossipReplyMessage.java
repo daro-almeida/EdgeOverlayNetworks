@@ -1,9 +1,9 @@
 package protocols.overlays.tman.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.Node;
 import protocols.overlays.tman.utils.profile.Profile;
 
@@ -33,9 +33,9 @@ public class GossipReplyMessage extends ProtoMessage {
         return nodes;
     }
 
-    public static ISerializer<GossipReplyMessage> serializer = new ISerializer<GossipReplyMessage>() {
+    public static final ISerializer<GossipReplyMessage> serializer = new ISerializer<GossipReplyMessage>() {
         @Override
-        public void serialize(GossipReplyMessage pushMessage, ByteBuf out) throws IOException {
+        public void serialize(GossipReplyMessage pushMessage, ByteBuf out) {
             out.writeInt(pushMessage.nodes.size());
             pushMessage.nodes.forEach(node -> {
                 try {

@@ -1,18 +1,18 @@
 package protocols.overlays.biasLayerTree.notifications;
 
-import babel.generic.ProtoNotification;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class FatherNotification extends ProtoNotification {
 
     public static final short NOTIFICATION_ID = 401;
     public static final String NOTIFICATION_NAME = "Father Change";
 
-    private Host oldFather;
-    private Host newFather;
+    private final Host oldFather;
+    private final Host newFather;
 
-    private short oldFatherLayer;
-    private short newFatherLayer;
+    private final short oldFatherLayer;
+    private final short newFatherLayer;
 
     public FatherNotification(Host oldFather, short oldFatherLayer, Host newFather, short newFatherLayer) {
         super(NOTIFICATION_ID);

@@ -1,9 +1,8 @@
 package protocols.overlays.xbot.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 
@@ -15,13 +14,13 @@ public class DisconnectWaitMessage extends ProtoMessage {
         super(MSG_ID);
     }
 
-    public static ISerializer<DisconnectWaitMessage> serializer = new ISerializer<DisconnectWaitMessage>() {
+    public static final ISerializer<DisconnectWaitMessage> serializer = new ISerializer<DisconnectWaitMessage>() {
         @Override
-        public void serialize(DisconnectWaitMessage optimizationMessage, ByteBuf out) throws IOException {
+        public void serialize(DisconnectWaitMessage optimizationMessage, ByteBuf out) {
         }
 
         @Override
-        public DisconnectWaitMessage deserialize(ByteBuf in) throws IOException {
+        public DisconnectWaitMessage deserialize(ByteBuf in) {
             return new DisconnectWaitMessage();
         }
     };

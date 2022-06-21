@@ -1,15 +1,15 @@
 package protocols.overlays.biasLayerTree.notifications;
 
-import babel.generic.ProtoNotification;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class NeighDown extends ProtoNotification {
     public static final short NOTIFICATION_ID = 403;
     public static final String NOTIFICATION_NAME = "Neigh Down";
 
 
-    private Host neigh;
-    private NeighUp.Status status;
+    private final Host neigh;
+    private final NeighUp.Status status;
 
     public NeighDown(Host neigh, short neighLayer, short myLayer) {
         super(NOTIFICATION_ID);

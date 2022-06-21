@@ -1,7 +1,7 @@
 package protocols.overlays.hyparview.timers;
 
 
-import babel.generic.ProtoTimer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 
 public class HelloTimeout extends ProtoTimer {
     public static final short TimerCode = 402;

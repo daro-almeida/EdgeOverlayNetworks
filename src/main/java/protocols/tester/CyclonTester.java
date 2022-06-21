@@ -1,8 +1,8 @@
 package protocols.tester;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.overlays.biasLayerTree.notifications.NeighDown;
@@ -27,7 +27,7 @@ public class CyclonTester extends GenericProtocol {
     private static final short timerid = 1;
 
 
-    private Set<Host> membership;
+    private final Set<Host> membership;
 
 
     public CyclonTester() throws HandlerRegistrationException {
@@ -66,7 +66,7 @@ public class CyclonTester extends GenericProtocol {
     }
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
         setupPeriodicTimer(new Timer(timerid), 2000, 2000);
     }
 }

@@ -1,11 +1,11 @@
 package protocols.dissemination.plumtree.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class MessageSource {
 
-    public Host peer;
-    public int round;
+    public final Host peer;
+    public final int round;
 
     public MessageSource(Host peer, int round) {
         this.peer = peer;

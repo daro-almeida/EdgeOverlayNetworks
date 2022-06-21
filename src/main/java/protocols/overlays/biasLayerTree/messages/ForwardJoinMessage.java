@@ -1,9 +1,9 @@
 package protocols.overlays.biasLayerTree.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.biasLayerTree.utils.LayeredView;
 import protocols.overlays.biasLayerTree.utils.Node;
 
@@ -20,11 +20,11 @@ public class ForwardJoinMessage extends ProtoMessage {
     public static final short MSG_CODE = 403;
 
     private short ttl;
-    private short maxLayers;
-    private LayeredView layeredNodes;
+    private final short maxLayers;
+    private final LayeredView layeredNodes;
     private List<Host> path; //nodes in the same layer
 
-    private Node newNode;
+    private final Node newNode;
 
     public ForwardJoinMessage(Node newNode, short ttl, int capacity, short maxLayers) {
         this(newNode, ttl, new LayeredView(capacity, newNode.getLayer()), new ArrayList<>(ttl), maxLayers);
@@ -115,7 +115,7 @@ public class ForwardJoinMessage extends ProtoMessage {
             for(short l : m.layeredNodes.getSortedLayers()) {
                 out.writeShort(l);
                 PriorityQueue<Node> nodesInLayer = m.layeredNodes.sortedLayer(Node.distanceComparator(m.newNode.getAddress()), l);
-                int size = m.getLayeredNodes().getCapacity() < nodesInLayer.size() ? m.getLayeredNodes().getCapacity() : nodesInLayer.size();
+                int size = Math.min(m.getLayeredNodes().getCapacity(), nodesInLayer.size());
                 out.writeShort(size);
                 for(int i = 0; i < size; i++) {
                     Node n = nodesInLayer.poll();

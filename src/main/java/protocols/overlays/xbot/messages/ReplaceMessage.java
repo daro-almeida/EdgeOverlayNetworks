@@ -1,9 +1,9 @@
 package protocols.overlays.xbot.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 
@@ -36,7 +36,7 @@ public class ReplaceMessage extends ProtoMessage {
         return peer;
     }
 
-    public static ISerializer<ReplaceMessage> serializer = new ISerializer<ReplaceMessage>() {
+    public static final ISerializer<ReplaceMessage> serializer = new ISerializer<ReplaceMessage>() {
         @Override
         public void serialize(ReplaceMessage optimizationMessage, ByteBuf out) throws IOException {
             Host.serializer.serialize(optimizationMessage.old, out);

@@ -1,6 +1,6 @@
 package protocols.overlays.tmanWithCyclon.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.cyclon.utils.CacheView;
 import protocols.overlays.tman.utils.Node;
 import protocols.overlays.tman.utils.profile.Profile;

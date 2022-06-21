@@ -1,7 +1,7 @@
 package protocols.overlays.xbot.timers;
 
-import babel.generic.ProtoTimer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class DisconnectWaitTimeout extends ProtoTimer {
 

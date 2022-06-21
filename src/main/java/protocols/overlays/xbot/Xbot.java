@@ -1,19 +1,16 @@
 package protocols.overlays.xbot;
 
-import babel.exceptions.HandlerRegistrationException;
-import channel.tcp.TCPChannel;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.overlays.biasLayerTree.notifications.NeighDown;
 import protocols.overlays.biasLayerTree.notifications.NeighUp;
-import protocols.overlays.biasLayerTree.timers.OptimizationTimer;
 import protocols.overlays.hyparview.HyparView;
 import protocols.overlays.hyparview.messages.DisconnectMessage;
-import protocols.overlays.hyparview.timers.HelloTimeout;
-import protocols.overlays.hyparview.timers.ShuffleTimer;
 import protocols.overlays.xbot.messages.*;
 import protocols.overlays.xbot.timers.DisconnectWaitTimeout;
 import protocols.overlays.xbot.timers.OptimizeTimeout;
@@ -21,7 +18,6 @@ import protocols.overlays.xbot.timers.OptimizeTimer;
 import protocols.overlays.xbot.utils.Oracle;
 import protocols.overlays.xbot.utils.MonitoredView;
 import protocols.overlays.xbot.utils.UDPLatencyOracle;
-import protocols.tester.DisseminationConsumer;
 
 import java.io.IOException;
 import java.util.*;
@@ -65,13 +61,13 @@ public class Xbot extends HyparView {
         this.optimizing = false;
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(DisconnectWaitMessage.MSG_ID, DisconnectWaitMessage.serializer);
-        registerMessageSerializer(OptimizationMessage.MSG_ID, OptimizationMessage.serializer);
-        registerMessageSerializer(OptimizationReplyMessage.MSG_ID, OptimizationReplyMessage.serializer);
-        registerMessageSerializer(ReplaceMessage.MSG_ID, ReplaceMessage.serializer);
-        registerMessageSerializer(ReplaceReplyMessage.MSG_ID, ReplaceReplyMessage.serializer);
-        registerMessageSerializer(SwitchMessage.MSG_ID, SwitchMessage.serializer);
-        registerMessageSerializer(SwitchReplyMessage.MSG_ID, SwitchReplyMessage.serializer);
+        registerMessageSerializer(channelId, DisconnectWaitMessage.MSG_ID, DisconnectWaitMessage.serializer);
+        registerMessageSerializer(channelId, OptimizationMessage.MSG_ID, OptimizationMessage.serializer);
+        registerMessageSerializer(channelId, OptimizationReplyMessage.MSG_ID, OptimizationReplyMessage.serializer);
+        registerMessageSerializer(channelId, ReplaceMessage.MSG_ID, ReplaceMessage.serializer);
+        registerMessageSerializer(channelId, ReplaceReplyMessage.MSG_ID, ReplaceReplyMessage.serializer);
+        registerMessageSerializer(channelId, SwitchMessage.MSG_ID, SwitchMessage.serializer);
+        registerMessageSerializer(channelId, SwitchReplyMessage.MSG_ID, SwitchReplyMessage.serializer);
 
 
         /*---------------------- Register Message Handlers -------------------------- */

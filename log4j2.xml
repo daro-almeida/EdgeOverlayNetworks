@@ -11,12 +11,10 @@
     </Appenders>
 
     <Loggers>
-        <Logger level="info" name="protocols.overlays.hyparview"/>
-        <Logger level="debug" name="protocols.overlays.xbot"/>
-        <Logger level="info" name="protocols.dissemination.plumtree"/>
-        <Logger level="info" name="babel"/>
-        <Logger level="info" name="network"/>
-        <Logger level="info" name="io.netty"/>
+        <Logger level="debug" name="protocols.overlays.hyparview"/>
+        <Logger level="debug" name="protocols.overlays.cyclon"/>
+        <Logger level="debug" name="protocols.dissemination.plumtree"/>
+        <Logger level="debug" name="protocols.dissemination.flood"/>
         <Root level="debug">
             <AppenderRef ref="Console" level="all"/>
         </Root>

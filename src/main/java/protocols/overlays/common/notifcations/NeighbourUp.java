@@ -1,7 +1,7 @@
 package protocols.overlays.common.notifcations;
 
-import babel.generic.ProtoNotification;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 public class NeighbourUp extends ProtoNotification {
 

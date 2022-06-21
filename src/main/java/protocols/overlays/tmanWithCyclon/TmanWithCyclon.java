@@ -1,10 +1,12 @@
 package protocols.overlays.tmanWithCyclon;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import channel.tcp.TCPChannel;
-import channel.tcp.events.*;
-import network.data.Host;
+import protocols.overlays.OverlayProtocol;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.channel.tcp.events.*;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.overlays.cyclon.requests.MembershipReply;
@@ -14,13 +16,11 @@ import protocols.overlays.tman.timers.GossipTimer;
 import protocols.overlays.tman.utils.Node;
 import protocols.overlays.tman.utils.View;
 import protocols.overlays.tman.utils.profile.IPAddrProfile;
-import protocols.overlays.tman.utils.profile.LayerIPAddrProfile;
 import protocols.overlays.tman.utils.profile.Profile;
 import protocols.overlays.tmanWithCyclon.messages.GossipReplyMessage;
 import protocols.overlays.tmanWithCyclon.messages.GossipMessage;
 import protocols.overlays.tmanWithCyclon.messages.ShuffleMessage;
 import protocols.overlays.tmanWithCyclon.messages.ShuffleReplyMessage;
-import protocols.overlays.tmanWithCyclon.utils.LayeredView;
 import protocols.overlays.tmanWithCyclon.utils.ProfiledCacheView;
 import utils.HostComp;
 
@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
 
-public class TmanWithCyclon extends GenericProtocol {
+public class TmanWithCyclon extends GenericProtocol implements OverlayProtocol {
 
     private static final Logger logger = LogManager.getLogger(TmanWithCyclon.class);
 
@@ -39,7 +39,8 @@ public class TmanWithCyclon extends GenericProtocol {
     private final int viewSize;
 
     private final Host myself;
-    private Profile myProfile;
+	private final int channelId;
+	private Profile myProfile;
     private View view;
 
 
@@ -58,8 +59,7 @@ public class TmanWithCyclon extends GenericProtocol {
     public TmanWithCyclon(String channelName, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
         super(PROTOCOL_NAME, PROTOCOL_ID);
 
-        int channelId = createChannel(channelName, properties);
-
+        channelId = createChannel(channelName, properties);
 
         logger.info("Hello, I am {}", myself);
 
@@ -91,11 +91,11 @@ public class TmanWithCyclon extends GenericProtocol {
         //view = new LayeredView(new Node(myself, myProfile), 1, 4);
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(GossipMessage.MSG_ID, GossipMessage.serializer);
-        registerMessageSerializer(GossipReplyMessage.MSG_ID, GossipReplyMessage.serializer);
+        registerMessageSerializer(channelId, GossipMessage.MSG_ID, GossipMessage.serializer);
+        registerMessageSerializer(channelId, GossipReplyMessage.MSG_ID, GossipReplyMessage.serializer);
 
-        registerMessageSerializer(ShuffleMessage.MSG_ID, ShuffleMessage.serializer);
-        registerMessageSerializer(ShuffleReplyMessage.MSG_ID, ShuffleReplyMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleMessage.MSG_ID, ShuffleMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleReplyMessage.MSG_ID, ShuffleReplyMessage.serializer);
 
         /*---------------------- Register Message Handlers -------------------------- */
         registerMessageHandler(channelId, GossipMessage.MSG_ID, this::uponGossipMessage);
@@ -215,7 +215,7 @@ public class TmanWithCyclon extends GenericProtocol {
         //logger.debug("Connection to {} is down, cause: {}", event.getNode(), event.getCause());
     }
 
-    private void uponOutConnectionFailed(OutConnectionFailed event, int channelId) {
+    private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
         //logger.debug("Connection to {} failed, cause: {}", event.getNode(), event.getCause());
     }
 
@@ -232,7 +232,7 @@ public class TmanWithCyclon extends GenericProtocol {
     }
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
 
         if (props.containsKey("contacts")) {
             try {
@@ -259,4 +259,9 @@ public class TmanWithCyclon extends GenericProtocol {
         setupPeriodicTimer(new GossipTimer(), gossipTime*5, gossipTime);
         setupPeriodicTimer(new ShuffleTimer(), this.shuffleTime, this.shuffleTime);
     }
+
+	@Override
+	public int getChannelId() {
+		return channelId;
+	}
 }

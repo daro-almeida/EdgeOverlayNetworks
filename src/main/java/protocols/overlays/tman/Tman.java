@@ -1,10 +1,11 @@
 package protocols.overlays.tman;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import channel.tcp.TCPChannel;
-import channel.tcp.events.*;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.channel.tcp.events.*;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.overlays.cyclon.Cyclon;
@@ -68,8 +69,8 @@ public class Tman extends GenericProtocol {
         view = new View(new Node(myself, myProfile));
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(GossipMessage.MSG_ID, GossipMessage.serializer);
-        registerMessageSerializer(GossipReplyMessage.MSG_ID, GossipReplyMessage.serializer);
+        registerMessageSerializer(channelId, GossipMessage.MSG_ID, GossipMessage.serializer);
+        registerMessageSerializer(channelId, GossipReplyMessage.MSG_ID, GossipReplyMessage.serializer);
 
         /*---------------------- Register Message Handlers -------------------------- */
         registerMessageHandler(channelId, GossipMessage.MSG_ID, this::uponGossipMessage);
@@ -151,7 +152,7 @@ public class Tman extends GenericProtocol {
         logger.debug("Connection to {} is down, cause: {}", event.getNode(), event.getCause());
     }
 
-    private void uponOutConnectionFailed(OutConnectionFailed event, int channelId) {
+    private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
         logger.debug("Connection to {} failed, cause: {}", event.getNode(), event.getCause());
     }
 
@@ -168,7 +169,7 @@ public class Tman extends GenericProtocol {
     }
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
 
         if (props.containsKey("contacts")) {
             try {
@@ -189,7 +190,7 @@ public class Tman extends GenericProtocol {
         }
 
         long gossipTime = Long.parseLong(props.getProperty("gossipTime", "2000"));
-        long getPeersTime = (long) (gossipTime/2);
+        long getPeersTime = gossipTime/2;
 
         setupPeriodicTimer(new GossipTimer(), gossipTime*5, gossipTime);
         setupPeriodicTimer(new GetPeersTimer(), getPeersTime, getPeersTime);

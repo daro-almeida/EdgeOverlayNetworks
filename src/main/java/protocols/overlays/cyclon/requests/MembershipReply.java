@@ -1,7 +1,7 @@
 package protocols.overlays.cyclon.requests;
 
-import babel.generic.ProtoReply;
-import network.data.Host;
+import pt.unl.fct.di.novasys.babel.generic.ProtoReply;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.util.HashSet;
 import java.util.Set;

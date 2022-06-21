@@ -1,8 +1,8 @@
 package protocols.dissemination.plumtree.messages;
 
-import babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 
@@ -35,15 +35,15 @@ public class IHaveMessage extends ProtoMessage {
         return round;
     }
 
-    public static ISerializer<IHaveMessage> serializer = new ISerializer<IHaveMessage>() {
+    public static final ISerializer<IHaveMessage> serializer = new ISerializer<IHaveMessage>() {
         @Override
-        public void serialize(IHaveMessage iHaveMessage, ByteBuf out) throws IOException {
+        public void serialize(IHaveMessage iHaveMessage, ByteBuf out) {
             out.writeInt(iHaveMessage.mid);
             out.writeInt(iHaveMessage.round);
         }
 
         @Override
-        public IHaveMessage deserialize(ByteBuf in) throws IOException {
+        public IHaveMessage deserialize(ByteBuf in) {
             return new IHaveMessage(in.readInt(), in.readInt());
         }
     };

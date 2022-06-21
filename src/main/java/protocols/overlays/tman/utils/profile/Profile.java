@@ -1,7 +1,7 @@
 package protocols.overlays.tman.utils.profile;
 
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,7 +24,7 @@ public abstract class Profile implements Comparable<Profile> {
 
 
 
-    public static ISerializer<Profile> serializer = new ISerializer<Profile>() {
+    public static final ISerializer<Profile> serializer = new ISerializer<Profile>() {
         @Override
         public void serialize(Profile profile, ByteBuf out) throws IOException {
             out.writeShort(profile.profileId);

@@ -1,9 +1,9 @@
 package protocols.overlays.tmanWithCyclon.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.Node;
 
 import java.io.IOException;
@@ -39,9 +39,9 @@ public class ShuffleMessage extends ProtoMessage {
                 '}';
     }
 
-    public static ISerializer<ShuffleMessage> serializer = new ISerializer<ShuffleMessage>() {
+    public static final ISerializer<ShuffleMessage> serializer = new ISerializer<ShuffleMessage>() {
         @Override
-        public void serialize(ShuffleMessage shuffleMessage, ByteBuf out) throws IOException {
+        public void serialize(ShuffleMessage shuffleMessage, ByteBuf out) {
             out.writeInt(shuffleMessage.subset.size());
             shuffleMessage.profiles.forEach((h)-> {
                 try {

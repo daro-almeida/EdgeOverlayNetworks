@@ -1,12 +1,11 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -14,10 +13,10 @@ import java.util.List;
 public class ShuffleMessage extends ProtoMessage {
     public final static short MSG_CODE = 407;
 
-    private short seqnum;
+    private final short seqnum;
     private short ttl;
     private final List<Host> sample;
-    private Host origin;
+    private final Host origin;
 
     public ShuffleMessage(Host self, Collection<Host> peers, short ttl, short seqnum) {
         super(ShuffleMessage.MSG_CODE);

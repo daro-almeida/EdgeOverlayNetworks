@@ -1,9 +1,9 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import java.util.List;
 public class ShuffleReplyMessage extends ProtoMessage {
     public final static short MSG_CODE = 4078;
 
-    private short seqnum;
+    private final short seqnum;
     private final List<Host> sample;
 
     public ShuffleReplyMessage(Collection<Host> peers, short seqnum) {

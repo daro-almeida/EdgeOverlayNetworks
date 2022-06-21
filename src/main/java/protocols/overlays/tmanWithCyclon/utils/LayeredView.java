@@ -1,14 +1,14 @@
 package protocols.overlays.tmanWithCyclon.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.Node;
 import protocols.overlays.tman.utils.View;
 import protocols.overlays.tman.utils.profile.LayerIPAddrProfile;
 
 public class LayeredView extends View {
 
-    private int topNodes;
-    private int middleNodes;
+    private final int topNodes;
+    private final int middleNodes;
 
     public LayeredView(Node target, int topNodes, int middleNodes) {
         super(target);

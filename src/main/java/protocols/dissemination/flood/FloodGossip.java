@@ -1,8 +1,5 @@
 package protocols.dissemination.flood;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.dissemination.plumtree.messages.GossipMessage;
@@ -11,6 +8,9 @@ import protocols.dissemination.plumtree.requests.DeliverReply;
 import protocols.dissemination.plumtree.utils.HashProducer;
 import protocols.overlays.common.notifcations.NeighbourDown;
 import protocols.overlays.common.notifcations.NeighbourUp;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -32,7 +32,7 @@ public class FloodGossip extends GenericProtocol {
 
     private final HashProducer hashProducer;
 
-    public FloodGossip(String channelName, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
+    public FloodGossip(int channelId, Host myself) throws IOException, HandlerRegistrationException {
         super(PROTO_NAME, PROTO_ID);
 
         this.hashProducer = new HashProducer(myself);
@@ -41,11 +41,10 @@ public class FloodGossip extends GenericProtocol {
         neighbours = new HashSet<>();
         received = new HashSet<>();
 
-
-        int channelId = createChannel(channelName, properties);
+		registerSharedChannel(channelId);
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(GossipMessage.MSG_ID, GossipMessage.serializer);
+        registerMessageSerializer(channelId, GossipMessage.MSG_ID, GossipMessage.serializer);
 
 
         /*---------------------- Register Message Handlers -------------------------- */
@@ -99,7 +98,7 @@ public class FloodGossip extends GenericProtocol {
 
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
 
     }
 }

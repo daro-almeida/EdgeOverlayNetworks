@@ -1,8 +1,8 @@
 package protocols.dissemination.plumtree.messages;
 
-import babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.io.IOException;
 
@@ -53,9 +53,9 @@ public class GossipMessage extends ProtoMessage {
         return content;
     }
 
-    public static ISerializer<GossipMessage> serializer = new ISerializer<GossipMessage>() {
+    public static final ISerializer<GossipMessage> serializer = new ISerializer<GossipMessage>() {
         @Override
-        public void serialize(GossipMessage gossipMessage, ByteBuf out) throws IOException {
+        public void serialize(GossipMessage gossipMessage, ByteBuf out) {
             out.writeInt(gossipMessage.mid);
             out.writeInt(gossipMessage.round);
             out.writeShort(gossipMessage.toDeliver);
@@ -66,7 +66,7 @@ public class GossipMessage extends ProtoMessage {
         }
 
         @Override
-        public GossipMessage deserialize(ByteBuf in) throws IOException {
+        public GossipMessage deserialize(ByteBuf in) {
             int mid = in.readInt();
             int round = in.readInt();
             short toDeliver = in.readShort();

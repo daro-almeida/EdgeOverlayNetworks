@@ -1,7 +1,7 @@
 package protocols.overlays.biasLayerTree.timers;
 
 
-import babel.generic.ProtoTimer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 
 public class LongDistanceShuffle extends ProtoTimer {
     public static final short TIMER_CODE = 404;

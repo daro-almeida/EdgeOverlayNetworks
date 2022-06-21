@@ -1,6 +1,6 @@
 package protocols.tester.utils;
 
-import babel.generic.ProtoTimer;
+import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 
 public class Timer extends ProtoTimer {
 

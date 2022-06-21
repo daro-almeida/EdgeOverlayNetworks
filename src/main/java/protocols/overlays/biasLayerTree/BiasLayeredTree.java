@@ -1,18 +1,20 @@
 package protocols.overlays.biasLayerTree;
 
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import channel.tcp.TCPChannel;
-import channel.tcp.events.*;
-import network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import protocols.overlays.OverlayProtocol;
 import protocols.overlays.biasLayerTree.messages.*;
 import protocols.overlays.biasLayerTree.notifications.*;
 import protocols.overlays.biasLayerTree.timers.*;
 import protocols.overlays.biasLayerTree.utils.LayeredView;
 import protocols.overlays.biasLayerTree.utils.Node;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.channel.tcp.events.*;
+import pt.unl.fct.di.novasys.network.data.Host;
 import utils.HostComp;
 import utils.IHostComparator;
 
@@ -22,7 +24,7 @@ import java.util.*;
 
 import static utils.IHostComparator.HostComparator.ipToInt;
 
-public class BiasLayeredTree extends GenericProtocol {
+public class BiasLayeredTree extends GenericProtocol implements OverlayProtocol {
 
     private static final Logger logger = LogManager.getLogger(BiasLayeredTree.class);
 
@@ -47,30 +49,24 @@ public class BiasLayeredTree extends GenericProtocol {
 
     //private int layerWeight; //the weight for scoring for a layer
 
-    private short n_neighs; //the number of neighbours I know from my layer
-    private short b_neighs; //the number of neighbours I know for backup in my layer
-    //b_neighs > n_neighs -> analogous to active view & passive view
+	//b_neighs > n_neighs -> analogous to active view & passive view
 
     private int timeout; //the timeout for any given message.
-    private int shuffleTime; //periodicity of findBrothers;
-    private int optimizeTime; //periodicity to verify optimizations
-    private int longDistanceShuffleTime; //periodicity of long distance shuffle
 
-    //state
+	//state
     private IHostComparator host_comp;
 
     /* -------------------------------- STATE --------------------------- */
-    private Host myself;
-    private final Random rand;
-    private long timestamp;
+    private final Host myself;
+	private long timestamp;
     private LayeredView activeView; //active view hosts all outgoing connections
     private LayeredView controlView; //control view hosts all incoming connections
     private LayeredView passiveView; //passive view hosts all knonwn hosts to which I don't have an outgoing connection
 
-
     private Node optimizedLayer;
     private Node optimizedTop;
 
+	private final int channelId;
 
     public BiasLayeredTree(String channelName, Properties properties, Host myself) throws HandlerRegistrationException, IOException {
         super(PROTOCOL_NAME, PROTOCOL_ID);
@@ -80,19 +76,19 @@ public class BiasLayeredTree extends GenericProtocol {
         optimizedLayer = null;
         optimizedTop = null;
 
-        int channelId = createChannel(channelName, properties);
+		channelId = createChannel(channelName, properties);
         this.myself = myself;
-        rand = new Random(ipToInt(myself.getAddress()) + myself.getPort());
+		Random rand = new Random(ipToInt(myself.getAddress()) + myself.getPort());
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(JoinMessage.MSG_CODE, JoinMessage.serializer);
-        registerMessageSerializer(ForwardJoinMessage.MSG_CODE, ForwardJoinMessage.serializer);
-        registerMessageSerializer(HelloNeighborMessage.MSG_CODE, HelloNeighborMessage.serializer);
-        registerMessageSerializer(HelloNeighborReplyMessage.MSG_CODE, HelloNeighborReplyMessage.serializer);
-        registerMessageSerializer(FatherMessage.MSG_CODE, FatherMessage.serializer);
-        registerMessageSerializer(DisconnectMessage.MSG_CODE, DisconnectMessage.serializer);
-        registerMessageSerializer(ShuffleMessage.MSG_CODE, ShuffleMessage.serializer);
-        registerMessageSerializer(ShuffleReplyMessage.MSG_CODE, ShuffleReplyMessage.serializer);
+        registerMessageSerializer(channelId, JoinMessage.MSG_CODE, JoinMessage.serializer);
+        registerMessageSerializer(channelId, ForwardJoinMessage.MSG_CODE, ForwardJoinMessage.serializer);
+        registerMessageSerializer(channelId, HelloNeighborMessage.MSG_CODE, HelloNeighborMessage.serializer);
+        registerMessageSerializer(channelId, HelloNeighborReplyMessage.MSG_CODE, HelloNeighborReplyMessage.serializer);
+        registerMessageSerializer(channelId, FatherMessage.MSG_CODE, FatherMessage.serializer);
+        registerMessageSerializer(channelId, DisconnectMessage.MSG_CODE, DisconnectMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleMessage.MSG_CODE, ShuffleMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleReplyMessage.MSG_CODE, ShuffleReplyMessage.serializer);
 
         /*---------------------- Register Message Handlers -------------------------- */
         registerMessageHandler(channelId, JoinMessage.MSG_CODE, this::uponReceiveJoin);
@@ -203,7 +199,7 @@ public class BiasLayeredTree extends GenericProtocol {
                 optimizedTop = optimizeTopLayer();
         } else { //continue
             addNodesToFJ(msg);
-            Host nextHop = null;
+            Host nextHop;
             if(msg.decrementTtl(myself) > 0 &&
                     (nextHop = getBestNextHop(msg.getNewNode().getAddress(), msg.getPath())) != null) {
                 //logger.warn("Sending " + msg + " to " + nextHop);
@@ -237,7 +233,7 @@ public class BiasLayeredTree extends GenericProtocol {
         Set<Host> allConnectedNodes = new HashSet<>();
         allConnectedNodes.addAll(activeView.layer(this.layer).keySet());
         allConnectedNodes.addAll(controlView.layer(this.layer).keySet());
-        allConnectedNodes.removeAll(toExclude);
+        toExclude.forEach(allConnectedNodes::remove);
         return getBestNode(allConnectedNodes, target);
     }
 
@@ -395,7 +391,7 @@ public class BiasLayeredTree extends GenericProtocol {
             sendMessage(m, timer.getContacts().get(0));
             logger.debug("Sent JoinMessage to {}", timer.getContacts().get(0));
             timer.incCount();
-            setupTimer(timer, (timeout * (this.layer) * layerRW) * timer.getCount());
+            setupTimer(timer, ((long) timeout * (this.layer) * layerRW) * timer.getCount());
         }
     }
 
@@ -612,7 +608,7 @@ public class BiasLayeredTree extends GenericProtocol {
 
     }
 
-    private void uponOutConnectionFailed(OutConnectionFailed event, int channelId) {
+    private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
         //logger.trace("Received " + event);
         passiveView.markDead(event.getNode());
         if(optimizedLayer != null && optimizedLayer.getAddress().equals(event.getNode()))
@@ -652,8 +648,10 @@ public class BiasLayeredTree extends GenericProtocol {
         this.maxNeighs = Short.parseShort(properties.getProperty("maxNeighs", "4"));
         //this.maxAccept = Short.parseShort(properties.getProperty("maxAccept", "3"));
 
-        this.n_neighs = Short.parseShort(properties.getProperty("layerNeighs", "3"));
-        this.b_neighs = Short.parseShort(properties.getProperty("backupNeighs", "4"));
+		//the number of neighbours I know from my layer
+		short n_neighs = Short.parseShort(properties.getProperty("layerNeighs", "3"));
+		//the number of neighbours I know for backup in my layer
+		short b_neighs = Short.parseShort(properties.getProperty("backupNeighs", "4"));
 
         this.k_a = Short.parseShort(properties.getProperty("k_a", "2"));
         this.k_p = Short.parseShort(properties.getProperty("k_p", "4"));
@@ -664,10 +662,13 @@ public class BiasLayeredTree extends GenericProtocol {
 
         //100 milliseconds
         this.timeout = Integer.parseInt(properties.getProperty("timeout", "100"));
-        this.shuffleTime = Integer.parseInt(properties.getProperty("shuffleTime", "1000"));
+		//periodicity of findBrothers;
+		int shuffleTime = Integer.parseInt(properties.getProperty("shuffleTime", "1000"));
         int fillActive = Integer.parseInt(properties.getProperty("fillActive", "1000"));
-        this.optimizeTime = Integer.parseInt(properties.getProperty("optimizeTime", "2000"));
-        this.longDistanceShuffleTime = Integer.parseInt(properties.getProperty("longDistanceShuffleTime", "10000"));
+		//periodicity to verify optimizations
+		int optimizeTime = Integer.parseInt(properties.getProperty("optimizeTime", "2000"));
+		//periodicity of long distance shuffle
+		int longDistanceShuffleTime = Integer.parseInt(properties.getProperty("longDistanceShuffleTime", "10000"));
 
         if(layer < 0) {
             System.err.println("Invalid layer configuration: layer=" + layer + " , use a value >= 0 for layer=");
@@ -676,9 +677,9 @@ public class BiasLayeredTree extends GenericProtocol {
 
         //Init state
         host_comp = HostComp.host_comp.getInstance(myself);
-        passiveView = new LayeredView(this.b_neighs, this.layer);
-        activeView = new LayeredView(this.n_neighs, this.layer);
-        controlView = new LayeredView(this.b_neighs+this.n_neighs, this.layer);
+        passiveView = new LayeredView(b_neighs, this.layer);
+        activeView = new LayeredView(n_neighs, this.layer);
+        controlView = new LayeredView(b_neighs + n_neighs, this.layer);
         timestamp = 0;
 
 
@@ -695,7 +696,7 @@ public class BiasLayeredTree extends GenericProtocol {
                 JoinMessage m = new JoinMessage(newSelf());
                 sendMessage(m, contacts.get(0));
                 logger.debug("Sent JoinMessage to {}", contacts.get(0));
-                setupTimer(new JoinTimeout(contacts), timeout*(this.layer)*layerRW);
+                setupTimer(new JoinTimeout(contacts), (long) timeout *(this.layer)*layerRW);
                 logger.trace("Sent " + m + " to " + contacts.get(0));
             } catch (Exception e) {
                 System.err.println("Invalid contact on configuration: '" + properties.getProperty("contacts"));
@@ -713,4 +714,8 @@ public class BiasLayeredTree extends GenericProtocol {
 
     }
 
+	@Override
+	public int getChannelId() {
+		return channelId;
+	}
 }

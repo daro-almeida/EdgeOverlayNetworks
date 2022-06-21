@@ -1,16 +1,16 @@
 package protocols.overlays.tman.utils;
 
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.profile.Profile;
 
 import java.util.*;
 
 public class View {
 
-    private Map<Host, Node> backing;
-    protected Queue<Node> ordered;
+    private final Map<Host, Node> backing;
+    protected final Queue<Node> ordered;
 
-    protected Node self;
+    protected final Node self;
 
     public View(Node self) {
         ordered = new PriorityQueue<>(Comparator.comparing(Node::getProfile));

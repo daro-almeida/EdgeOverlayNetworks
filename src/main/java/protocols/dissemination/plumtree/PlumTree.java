@@ -1,9 +1,5 @@
 package protocols.dissemination.plumtree;
 
-import babel.events.InternalEvent;
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.dissemination.plumtree.messages.GossipMessage;
@@ -19,6 +15,9 @@ import protocols.dissemination.plumtree.utils.LazyQueuePolicy;
 import protocols.dissemination.plumtree.utils.MessageSource;
 import protocols.overlays.common.notifcations.NeighbourDown;
 import protocols.overlays.common.notifcations.NeighbourUp;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,7 +51,7 @@ public class PlumTree extends GenericProtocol {
 
     private final HashProducer hashProducer;
 
-    public PlumTree(String channelName, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
+    public PlumTree(int channelId, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
         super(PROTOCOL_NAME, PROTOCOL_ID);
         this.myself = myself;
         this.hashProducer = new HashProducer(myself);
@@ -73,12 +72,13 @@ public class PlumTree extends GenericProtocol {
         this.timeout1 = Long.parseLong(properties.getProperty("timeout1", "1000"));
         this.timeout2 = Long.parseLong(properties.getProperty("timeout2", "500"));
 
-        int channelId = createChannel(channelName, properties);
-        /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(GossipMessage.MSG_ID, GossipMessage.serializer);
-        registerMessageSerializer(PruneMessage.MSG_ID, PruneMessage.serializer);
-        registerMessageSerializer(GraftMessage.MSG_ID, GraftMessage.serializer);
-        registerMessageSerializer(IHaveMessage.MSG_ID, IHaveMessage.serializer);
+		registerSharedChannel(channelId);
+
+		/*---------------------- Register Message Serializers ---------------------- */
+        registerMessageSerializer(channelId, GossipMessage.MSG_ID, GossipMessage.serializer);
+        registerMessageSerializer(channelId, PruneMessage.MSG_ID, PruneMessage.serializer);
+        registerMessageSerializer(channelId, GraftMessage.MSG_ID, GraftMessage.serializer);
+        registerMessageSerializer(channelId, IHaveMessage.MSG_ID, IHaveMessage.serializer);
 
 
         /*---------------------- Register Message Handlers -------------------------- */
@@ -277,7 +277,7 @@ public class PlumTree extends GenericProtocol {
     }
 
     @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
+    public void init(Properties props) {
 
     }
 }

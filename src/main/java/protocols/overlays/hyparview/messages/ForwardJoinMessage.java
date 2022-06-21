@@ -1,12 +1,11 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 
 public class ForwardJoinMessage extends ProtoMessage {
     public final static short MSG_CODE = 403;

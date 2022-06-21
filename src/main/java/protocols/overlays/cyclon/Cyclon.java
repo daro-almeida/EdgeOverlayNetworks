@@ -1,10 +1,14 @@
 package protocols.overlays.cyclon;
 
-import babel.exceptions.HandlerRegistrationException;
-import babel.generic.GenericProtocol;
-import channel.tcp.TCPChannel;
-import channel.tcp.events.*;
-import network.data.Host;
+import protocols.overlays.OverlayProtocol;
+import protocols.overlays.biasLayerTree.notifications.NeighDown;
+import protocols.overlays.biasLayerTree.notifications.NeighUp;
+import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
+import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.channel.tcp.events.*;
+import pt.unl.fct.di.novasys.network.data.Host;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.overlays.cyclon.messages.ShuffleMessage;
@@ -18,7 +22,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
 
-public class Cyclon extends GenericProtocol {
+public class Cyclon extends GenericProtocol implements OverlayProtocol {
 
     private static final Logger logger = LogManager.getLogger(Cyclon.class);
 
@@ -32,6 +36,8 @@ public class Cyclon extends GenericProtocol {
     private final CacheView cacheView;
     private final Host myself;
 
+	private final int channelId;
+
     private final Map<Host, Set<Host>> ongoing;
 
 
@@ -42,18 +48,18 @@ public class Cyclon extends GenericProtocol {
 
         int capacity = Integer.parseInt(properties.getProperty("cacheView", "15")); //param: capacity of cacheView
         this.shuffleTime = Short.parseShort(properties.getProperty("shuffleTime", "2000")); //param: timeout for shuffle
-        subsetSize = Integer.parseInt(properties.getProperty("shuffleLen", "10"));
+        subsetSize = Integer.parseInt(properties.getProperty("shuffleLen", "7"));
 
         Random rnd = new Random();
         this.myself = myself;
         this.cacheView = new CacheView(capacity, rnd, myself);
         this.ongoing = new HashMap<>();
 
-        int channelId = createChannel(channelName, properties);
+        channelId = createChannel(channelName, properties);
 
         /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(ShuffleMessage.MSG_ID, ShuffleMessage.serializer);
-        registerMessageSerializer(ShuffleReplyMessage.MSG_ID, ShuffleReplyMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleMessage.MSG_ID, ShuffleMessage.serializer);
+        registerMessageSerializer(channelId, ShuffleReplyMessage.MSG_ID, ShuffleReplyMessage.serializer);
 
         /*---------------------- Register Message Handlers -------------------------- */
         registerMessageHandler(channelId, ShuffleMessage.MSG_ID, this::uponShuffle);
@@ -80,21 +86,42 @@ public class Cyclon extends GenericProtocol {
         Map<Host, Integer> subset = cacheView.getRandomAgedSubset(msg.getSubset().size());
         sendMessage(new ShuffleReplyMessage(subset), from, TCPChannel.CONNECTION_IN);
         logger.debug("Sent ShuffleReplyMessage to {}", from);
+		removeNeighbourFromSubset(subset.keySet());
+		addNeighboursFromSubset(msg.getSubset());
         cacheView.merge(msg.getSubset(), subset.keySet());
-
-    }
+	}
 
 
     private void uponShuffleReply(ShuffleReplyMessage msg, Host from, short sourceProto, int channelId) {
         logger.debug("Received {} from {}", msg, from);
-        closeConnection(from);
         Set<Host> subset = ongoing.remove(from);
-        cacheView.merge(msg.getSubset(), subset);
-        cacheView.putBack(from);
+		removeNeighbourFromSubset(subset);
+		addNeighboursFromSubset(msg.getSubset());
+		cacheView.merge(msg.getSubset(), subset);
+		cacheView.putBack(from);
     }
 
+	private void removeNeighbourFromSubset(Set<Host> subset) {
+		for (Host h : subset) {
+			if (cacheView.getCache().contains(h)) {
+				triggerNotification(new NeighDown(h, (short) -1, (short)-1));
+				closeConnection(h);
+				return;
+			}
+		}
+	}
 
-    /*--------------------------------- Timers ---------------------------------------- */
+	private void addNeighboursFromSubset(Map<Host, Integer> subset) {
+		for (Host h : subset.keySet()) {
+			if (!h.equals(myself) && !cacheView.getCache().contains(h)) {
+				openConnection(h);
+				triggerNotification(new NeighUp(h, (short) -1, (short) -1));
+			}
+		}
+	}
+
+
+	/*--------------------------------- Timers ---------------------------------------- */
     private void uponShuffleTime(ShuffleTimer timer, long timerId) {
         logger.debug("Shuffle Time: cache{}", cacheView);
         if(cacheView.getOrdered().size() > 0) {
@@ -106,6 +133,7 @@ public class Cyclon extends GenericProtocol {
                 subset.remove(target);
                 subset.put(myself, 0);
 
+				openConnection(target);
                 sendMessage(new ShuffleMessage(subset), target);
                 logger.debug("Sent ShuffleMessage to {}", target);
                 ongoing.put(target, subset.keySet());
@@ -133,10 +161,11 @@ public class Cyclon extends GenericProtocol {
         logger.trace("Connection to {} is down cause {}", event.getNode(), event.getCause());
     }
 
-    private void uponOutConnectionFailed(OutConnectionFailed event, int channelId) {
+    private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
         logger.trace("Connection to {} failed cause: {}", event.getNode(), event.getCause());
         cacheView.removePeer(event.getNode());
-    }
+		triggerNotification(new NeighDown(event.getNode(), (short) -1, (short)-1));
+	}
 
     private void uponOutConnectionUp(OutConnectionUp event, int channelId) {
         logger.trace("Connection to {} is up", event.getNode());
@@ -150,23 +179,33 @@ public class Cyclon extends GenericProtocol {
         logger.trace("Connection from {} is down, cause: {}", event.getNode(), event.getCause());
     }
 
-    @Override
-    public void init(Properties props) throws HandlerRegistrationException, IOException {
-        if (props.containsKey("contacts")) {
-            try {
-                String[] allContacts = props.getProperty("contacts").split(",");
+	@Override
+	public void init(Properties props) throws HandlerRegistrationException, IOException {
+		if (props.containsKey("contacts")) {
+			try {
+				String[] allContacts = props.getProperty("contacts").split(",");
 
-                for(String contact : allContacts) {
-                    String[] hostElems = contact.split(":");
-                    cacheView.addPeer(new Host(InetAddress.getByName(hostElems[0]), Short.parseShort(hostElems[1])), 0);
-                }
+				for(String contact : allContacts) {
+					String[] hostElems = contact.split(":");
+					Host h = new Host(InetAddress.getByName(hostElems[0]), Short.parseShort(hostElems[1]));
+					if(!h.equals(myself)) {
+						cacheView.addPeer(h, 0);
+						openConnection(h);
+						triggerNotification(new NeighUp(h, (short)-1, (short)-1));
+					}
+				}
 
-            } catch (Exception e) {
-                System.err.println("Invalid contact on configuration: '" + props.getProperty("contacts"));
-                e.printStackTrace();
-                System.exit(-1);
-            }
-        }
-        setupPeriodicTimer(new ShuffleTimer(), this.shuffleTime, this.shuffleTime);
-    }
+			} catch (Exception e) {
+				System.err.println("Invalid contact on configuration: '" + props.getProperty("contacts"));
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
+		setupPeriodicTimer(new ShuffleTimer(), this.shuffleTime, this.shuffleTime);
+	}
+
+	@Override
+	public int getChannelId() {
+		return channelId;
+	}
 }

@@ -1,8 +1,8 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.net.UnknownHostException;
 
@@ -10,7 +10,7 @@ public class HelloMessage extends ProtoMessage {
     public final static short MSG_CODE = 405;
 
     //prio == true -> high; prio == false --> low
-    private boolean priority;
+    private final boolean priority;
 
     public HelloMessage(boolean priority) {
         super(HelloMessage.MSG_CODE);
@@ -35,7 +35,7 @@ public class HelloMessage extends ProtoMessage {
         }
 
         @Override
-        public HelloMessage deserialize(ByteBuf in) throws UnknownHostException {
+        public HelloMessage deserialize(ByteBuf in) {
             boolean priority = in.readBoolean();
 
             return new HelloMessage(priority);

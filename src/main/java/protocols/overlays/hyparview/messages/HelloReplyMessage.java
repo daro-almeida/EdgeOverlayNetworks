@@ -1,8 +1,8 @@
 package protocols.overlays.hyparview.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
+import pt.unl.fct.di.novasys.network.ISerializer;
 
 import java.net.UnknownHostException;
 
@@ -34,7 +34,7 @@ public class HelloReplyMessage extends ProtoMessage {
         }
 
         @Override
-        public HelloReplyMessage deserialize(ByteBuf in) throws UnknownHostException {
+        public HelloReplyMessage deserialize(ByteBuf in) {
             boolean reply = in.readBoolean();
 
             return new HelloReplyMessage(reply);

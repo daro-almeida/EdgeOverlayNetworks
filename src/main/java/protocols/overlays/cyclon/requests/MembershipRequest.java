@@ -1,6 +1,6 @@
 package protocols.overlays.cyclon.requests;
 
-import babel.generic.ProtoRequest;
+import pt.unl.fct.di.novasys.babel.generic.ProtoRequest;
 
 public class MembershipRequest extends ProtoRequest {
 

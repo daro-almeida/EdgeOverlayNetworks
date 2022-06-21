@@ -1,15 +1,15 @@
 package protocols.overlays.tmanWithCyclon.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 import protocols.overlays.tman.utils.Node;
 import protocols.overlays.tman.utils.profile.Profile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;;
+import java.util.Collection;
 
 public class GossipMessage extends ProtoMessage {
 
@@ -33,9 +33,9 @@ public class GossipMessage extends ProtoMessage {
         return nodes;
     }
 
-    public static ISerializer<GossipMessage> serializer = new ISerializer<GossipMessage>() {
+    public static final ISerializer<GossipMessage> serializer = new ISerializer<GossipMessage>() {
         @Override
-        public void serialize(GossipMessage pushMessage, ByteBuf out) throws IOException {
+        public void serialize(GossipMessage pushMessage, ByteBuf out) {
             out.writeInt(pushMessage.nodes.size());
             pushMessage.nodes.forEach(node -> {
                 try {

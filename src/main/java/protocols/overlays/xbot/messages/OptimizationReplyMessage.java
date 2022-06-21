@@ -1,9 +1,9 @@
 package protocols.overlays.xbot.messages;
 
-import babel.generic.ProtoMessage;
+import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
 import io.netty.buffer.ByteBuf;
-import network.ISerializer;
-import network.data.Host;
+import pt.unl.fct.di.novasys.network.ISerializer;
+import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
 
@@ -42,7 +42,7 @@ public class OptimizationReplyMessage extends ProtoMessage {
         return answer;
     }
 
-    public static ISerializer<OptimizationReplyMessage> serializer = new ISerializer<OptimizationReplyMessage>() {
+    public static final ISerializer<OptimizationReplyMessage> serializer = new ISerializer<OptimizationReplyMessage>() {
         @Override
         public void serialize(OptimizationReplyMessage optimizationMessage, ByteBuf out) throws IOException {
             Host.serializer.serialize(optimizationMessage.old, out);
