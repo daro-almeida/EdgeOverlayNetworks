@@ -13,7 +13,7 @@ import protocols.overlays.hyparview.utils.View;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
-import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
+import pt.unl.fct.di.novasys.channel.proxy.ProxyChannel;
 import pt.unl.fct.di.novasys.channel.tcp.events.*;
 import pt.unl.fct.di.novasys.network.data.Host;
 
@@ -22,7 +22,7 @@ import java.net.InetAddress;
 import java.util.*;
 
 
-public class HyparView  extends GenericProtocol implements OverlayProtocol {
+public class HyparView extends GenericProtocol implements OverlayProtocol {
 
     private static final Logger logger = LogManager.getLogger(HyparView.class);
 
@@ -115,9 +115,10 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
     }
 
 	/*--------------------------------- Messages ---------------------------------------- */
+
 	protected void handleDropFromActive(Host dropped) {
 		if(dropped != null) {
-			triggerNotification(new NeighDown(dropped, (short) -1, (short)-1));
+			triggerNotification(new NeighDown(dropped, (short) -1, (short) -1));
 			sendMessage(new DisconnectMessage(), dropped);
 			logger.debug("Sent DisconnectMessage to {}", dropped);
 			passive.addPeer(dropped);
@@ -128,9 +129,9 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 	private void uponReceiveJoin(JoinMessage msg, Host from, short sourceProto, int channelId) {
 		logger.debug("Received {} from {}", msg, from);
 		Host h = active.addPeer(from);
-		openConnection(from);
 		logger.trace("Added to {} active{}", from, active);
-		triggerNotification(new NeighUp(from, (short)-1, (short)-1));
+		openConnection(from);
+		triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 		sendMessage( new JoinReplyMessage(), from);
 		logger.debug("Sent JoinReplyMessage to {}", from);
 		handleDropFromActive(h);
@@ -150,6 +151,7 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 			passive.removePeer(from);
 			pending.remove(from);
 
+
 			Host h = active.addPeer(from);
 			openConnection(from);
 			logger.trace("Added to {} active{}", from, active);
@@ -166,8 +168,8 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 				pending.remove(msg.getNewHost());
 
 				Host h = active.addPeer(msg.getNewHost());
-				openConnection(msg.getNewHost());
 				logger.trace("Added to {} active{}", msg.getNewHost(), active);
+				openConnection(msg.getNewHost());
 				triggerNotification(new NeighUp(msg.getNewHost(), (short) -1, (short) -1));
 				sendMessage(new JoinReplyMessage(), msg.getNewHost());
 				logger.debug("Sent JoinReplyMessage to {}", msg.getNewHost());
@@ -195,8 +197,8 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 				passive.removePeer(from);
 				logger.trace("Removed from {} passive{}", from, passive);
 				Host h = active.addPeer(from);
-				openConnection(from);
 				logger.trace("Added to {} active{}", from, active);
+				openConnection(from);
 				triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				handleDropFromActive(h);
 			}
@@ -211,14 +213,14 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 					passive.removePeer(from);
 					logger.trace("Removed from {} passive{}", from, passive);
 					active.addPeer(from);
-					openConnection(from);
 					logger.trace("Added to {} active{}", from, active);
+					openConnection(from);
 					triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				}
 				sendMessage(new HelloReplyMessage(true), from);
 				logger.debug("Sent HelloReplyMessage to {}", from);
 			} else {
-				sendMessage(new HelloReplyMessage(false), from, TCPChannel.CONNECTION_IN);
+				sendMessage(new HelloReplyMessage(false), from, ProxyChannel.CONNECTION_IN);
 				logger.debug("Sent HelloReplyMessage to {}", from);
 			}
 		}
@@ -232,8 +234,8 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 			if(!active.containsPeer(from)) {
 				timeout = originalTimeout;
 				Host h = active.addPeer(from);
-				openConnection(from);
 				logger.trace("Added to {} active{}", from, active);
+				openConnection(from);
 				triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				handleDropFromActive(h);
 			}
@@ -288,6 +290,8 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 				passive.addPeer(host);
 			}
 			logger.trace("After Passive{}", passive);
+			if(!active.containsPeer(msg.getOrigin()) && !pending.contains(msg.getOrigin()))
+				openConnection(msg.getOrigin());
 			sendMessage(new ShuffleReplyMessage(peers, msg.getSeqnum()), msg.getOrigin());
 			logger.debug("Sent ShuffleReplyMessage to {}", msg.getOrigin());
 		} else
@@ -341,6 +345,7 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 			Host h = passive.dropRandom();
 			if(h != null && pending.add(h)) {
 				logger.trace("Sending HelloMessage to {}, pending {}, active {}, passive {}", h, pending, active, passive);
+				openConnection(h);
 				sendMessage(new HelloMessage(getPriority()), h);
 				logger.debug("Sent HelloMessage to {}", h);
 				timeout = (short) (Math.min(timeout * 2, MAX_BACKOFF));
@@ -358,7 +363,7 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 	private void uponOutConnectionDown(OutConnectionDown event, int channelId) {
 		logger.trace("Host {} is down, active{}, cause: {}", event.getNode(), active, event.getCause());
 		if(active.removePeer(event.getNode())) {
-			triggerNotification(new NeighDown(event.getNode(), (short)-1, (short)-1));
+			triggerNotification(new NeighDown(event.getNode(), (short) -1, (short) -1));
 			if(!active.fullWithPending(pending)){
 				setupTimer(new HelloTimeout(), timeout);
 			}
@@ -369,7 +374,7 @@ public class HyparView  extends GenericProtocol implements OverlayProtocol {
 	private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
 		logger.trace("Connection to host {} failed, cause: {}", event.getNode(), event.getCause());
 		if(active.removePeer(event.getNode())) {
-			triggerNotification(new NeighDown(event.getNode(), (short)-1, (short)-1));
+			triggerNotification(new NeighDown(event.getNode(), (short) -1, (short) -1));
 			if(!active.fullWithPending(pending)){
 				setupTimer(new HelloTimeout(), timeout);
 			}
