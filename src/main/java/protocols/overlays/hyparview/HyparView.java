@@ -13,112 +13,103 @@ import protocols.overlays.hyparview.utils.View;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
-import pt.unl.fct.di.novasys.channel.proxy.ProxyChannel;
+import pt.unl.fct.di.novasys.channel.emulation.EmulatedChannel;
 import pt.unl.fct.di.novasys.channel.tcp.events.*;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.Contacts;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.*;
 
 
 public class HyparView extends GenericProtocol implements OverlayProtocol {
 
-    private static final Logger logger = LogManager.getLogger(HyparView.class);
+	public final static short PROTOCOL_ID = 400;
+	public final static String PROTOCOL_NAME = "HyParView";
+	private static final Logger logger = LogManager.getLogger(HyparView.class);
+	private static final int MAX_BACKOFF = 60000;
+	protected final Host myself;
+	protected final Set<Host> pending;
+	protected final Random rnd;
+	private final short ARWL; //param: active random walk length
+	private final short PRWL; //param: passive random walk length
+	private final short shuffleTime; //param: timeout for shuffle
+	private final short originalTimeout; //param: timeout for hello msgs
+	private final short kActive; //param: number of active nodes to exchange on shuffle
+	private final short kPassive; //param: number of passive nodes to exchange on shuffle
+	private final Map<Short, Host[]> activeShuffles;
+	protected int channelId;
+	protected IView active;
+	protected IView passive;
+	private short timeout;
+	private short seqNum = 0;
 
-    public final static short PROTOCOL_ID = 400;
-    public final static String PROTOCOL_NAME = "HyParView";
-    private static final int MAX_BACKOFF = 60000;
+	public HyparView(String channelName, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
+		super(PROTOCOL_NAME, PROTOCOL_ID);
+		this.myself = myself;
 
-    private final short ARWL; //param: active random walk length
-    private final short PRWL; //param: passive random walk length
+		int maxActive = Integer.parseInt(properties.getProperty("ActiveView", "4")); //param: maximum active nodes (degree of random overlay)
+		int maxPassive = Integer.parseInt(properties.getProperty("PassiveView", "7")); //param: maximum passive nodes
+		this.ARWL = Short.parseShort(properties.getProperty("ARWL", "2")); //param: active random walk length
+		this.PRWL = Short.parseShort(properties.getProperty("PRWL", "4")); //param: passive random walk length
 
-    private final short shuffleTime; //param: timeout for shuffle
-    private final short originalTimeout; //param: timeout for hello msgs
-    private short timeout;
+		this.shuffleTime = Short.parseShort(properties.getProperty("shuffleTime", "2000")); //param: timeout for shuffle
+		this.timeout = this.originalTimeout = Short.parseShort(properties.getProperty("helloBackoff", "1000")); //param: timeout for hello msgs
 
-    private final short kActive; //param: number of active nodes to exchange on shuffle
-    private final short kPassive; //param: number of passive nodes to exchange on shuffle
+		this.kActive = Short.parseShort(properties.getProperty("kActive", "2")); //param: number of active nodes to exchange on shuffle
+		this.kPassive = Short.parseShort(properties.getProperty("kPassive", "3")); //param: number of passive nodes to exchange on shuffle
 
+		this.rnd = new Random();
+		this.active = new View(maxActive, myself, rnd);
+		this.passive = new View(maxPassive, myself, rnd);
 
-    protected int channelId;
-    protected final Host myself;
+		this.pending = new HashSet<>();
+		this.activeShuffles = new TreeMap<>();
 
-    protected IView active;
-    protected IView passive;
+		this.active.setOther(passive, pending);
+		this.passive.setOther(active, pending);
 
-    protected final Set<Host> pending;
-    private final Map<Short, Host[]> activeShuffles;
+		channelId = createChannel(channelName, properties);
 
-    private short seqNum = 0;
+		/*---------------------- Register Message Serializers ---------------------- */
+		registerMessageSerializer(channelId, JoinMessage.MSG_CODE, JoinMessage.serializer);
+		registerMessageSerializer(channelId, JoinReplyMessage.MSG_CODE, JoinReplyMessage.serializer);
+		registerMessageSerializer(channelId, ForwardJoinMessage.MSG_CODE, ForwardJoinMessage.serializer);
+		registerMessageSerializer(channelId, HelloMessage.MSG_CODE, HelloMessage.serializer);
+		registerMessageSerializer(channelId, HelloReplyMessage.MSG_CODE, HelloReplyMessage.serializer);
+		registerMessageSerializer(channelId, DisconnectMessage.MSG_CODE, DisconnectMessage.serializer);
+		registerMessageSerializer(channelId, ShuffleMessage.MSG_CODE, ShuffleMessage.serializer);
+		registerMessageSerializer(channelId, ShuffleReplyMessage.MSG_CODE, ShuffleReplyMessage.serializer);
 
-    protected final Random rnd;
+		/*---------------------- Register Message Handlers -------------------------- */
+		registerMessageHandler(channelId, JoinMessage.MSG_CODE, this::uponReceiveJoin);
+		registerMessageHandler(channelId, JoinReplyMessage.MSG_CODE, this::uponReceiveJoinReply);
+		registerMessageHandler(channelId, ForwardJoinMessage.MSG_CODE, this::uponReceiveForwardJoin);
+		registerMessageHandler(channelId, HelloMessage.MSG_CODE, this::uponReceiveHello);
+		registerMessageHandler(channelId, HelloReplyMessage.MSG_CODE, this::uponReceiveHelloReply);
+		registerMessageHandler(channelId, DisconnectMessage.MSG_CODE, this::uponReceiveDisconnect, this::uponDisconnectSent);
+		registerMessageHandler(channelId, ShuffleMessage.MSG_CODE, this::uponReceiveShuffle);
+		registerMessageHandler(channelId, ShuffleReplyMessage.MSG_CODE, this::uponReceiveShuffleReply, this::uponShuffleReplySent);
 
-    public HyparView(String channelName, Properties properties, Host myself) throws IOException, HandlerRegistrationException {
-        super(PROTOCOL_NAME, PROTOCOL_ID);
-        this.myself = myself;
+		/*--------------------- Register Timer Handlers ----------------------------- */
+		registerTimerHandler(ShuffleTimer.TimerCode, this::uponShuffleTime);
+		registerTimerHandler(HelloTimeout.TimerCode, this::uponHelloTimeout);
 
-        int maxActive = Integer.parseInt(properties.getProperty("ActiveView", "4")); //param: maximum active nodes (degree of random overlay)
-        int maxPassive = Integer.parseInt(properties.getProperty("PassiveView", "7")); //param: maximum passive nodes
-        this.ARWL = Short.parseShort(properties.getProperty("ARWL", "2")); //param: active random walk length
-        this.PRWL = Short.parseShort(properties.getProperty("PRWL", "4")); //param: passive random walk length
+		/*-------------------- Register Channel Event ------------------------------- */
+		registerChannelEventHandler(channelId, OutConnectionDown.EVENT_ID, this::uponOutConnectionDown);
+		registerChannelEventHandler(channelId, OutConnectionFailed.EVENT_ID, this::uponOutConnectionFailed);
+		registerChannelEventHandler(channelId, OutConnectionUp.EVENT_ID, this::uponOutConnectionUp);
+		registerChannelEventHandler(channelId, InConnectionUp.EVENT_ID, this::uponInConnectionUp);
+		registerChannelEventHandler(channelId, InConnectionDown.EVENT_ID, this::uponInConnectionDown);
 
-        this.shuffleTime = Short.parseShort(properties.getProperty("shuffleTime", "2000")); //param: timeout for shuffle
-        this.timeout = this.originalTimeout = Short.parseShort(properties.getProperty("helloBackoff", "1000")); //param: timeout for hello msgs
-
-        this.kActive = Short.parseShort(properties.getProperty("kActive", "2")); //param: number of active nodes to exchange on shuffle
-        this.kPassive = Short.parseShort(properties.getProperty("kPassive", "3")); //param: number of passive nodes to exchange on shuffle
-
-        this.rnd = new Random();
-        this.active = new View(maxActive, myself, rnd);
-        this.passive = new View(maxPassive, myself, rnd);
-
-        this.pending = new HashSet<>();
-        this.activeShuffles = new TreeMap<>();
-
-        this.active.setOther(passive, pending);
-        this.passive.setOther(active, pending);
-
-        channelId = createChannel(channelName, properties);
-
-        /*---------------------- Register Message Serializers ---------------------- */
-        registerMessageSerializer(channelId, JoinMessage.MSG_CODE, JoinMessage.serializer);
-        registerMessageSerializer(channelId, JoinReplyMessage.MSG_CODE, JoinReplyMessage.serializer);
-        registerMessageSerializer(channelId, ForwardJoinMessage.MSG_CODE, ForwardJoinMessage.serializer);
-        registerMessageSerializer(channelId, HelloMessage.MSG_CODE, HelloMessage.serializer);
-        registerMessageSerializer(channelId, HelloReplyMessage.MSG_CODE, HelloReplyMessage.serializer);
-        registerMessageSerializer(channelId, DisconnectMessage.MSG_CODE, DisconnectMessage.serializer);
-        registerMessageSerializer(channelId, ShuffleMessage.MSG_CODE, ShuffleMessage.serializer);
-        registerMessageSerializer(channelId, ShuffleReplyMessage.MSG_CODE, ShuffleReplyMessage.serializer);
-
-        /*---------------------- Register Message Handlers -------------------------- */
-        registerMessageHandler(channelId, JoinMessage.MSG_CODE, this::uponReceiveJoin);
-        registerMessageHandler(channelId, JoinReplyMessage.MSG_CODE, this::uponReceiveJoinReply);
-        registerMessageHandler(channelId, ForwardJoinMessage.MSG_CODE, this::uponReceiveForwardJoin);
-        registerMessageHandler(channelId, HelloMessage.MSG_CODE, this::uponReceiveHello);
-        registerMessageHandler(channelId, HelloReplyMessage.MSG_CODE, this::uponReceiveHelloReply);
-        registerMessageHandler(channelId, DisconnectMessage.MSG_CODE, this::uponReceiveDisconnect, this::uponDisconnectSent);
-        registerMessageHandler(channelId, ShuffleMessage.MSG_CODE, this::uponReceiveShuffle);
-        registerMessageHandler(channelId, ShuffleReplyMessage.MSG_CODE, this::uponReceiveShuffleReply, this::uponShuffleReplySent);
-
-        /*--------------------- Register Timer Handlers ----------------------------- */
-        registerTimerHandler(ShuffleTimer.TimerCode, this::uponShuffleTime);
-        registerTimerHandler(HelloTimeout.TimerCode, this::uponHelloTimeout);
-
-        /*-------------------- Register Channel Event ------------------------------- */
-        registerChannelEventHandler(channelId, OutConnectionDown.EVENT_ID, this::uponOutConnectionDown);
-        registerChannelEventHandler(channelId, OutConnectionFailed.EVENT_ID, this::uponOutConnectionFailed);
-        registerChannelEventHandler(channelId, OutConnectionUp.EVENT_ID, this::uponOutConnectionUp);
-        registerChannelEventHandler(channelId, InConnectionUp.EVENT_ID, this::uponInConnectionUp);
-        registerChannelEventHandler(channelId, InConnectionDown.EVENT_ID, this::uponInConnectionDown);
-
-    }
+	}
 
 	/*--------------------------------- Messages ---------------------------------------- */
 
+	/*--------------------------------- Messages ---------------------------------------- */
 	protected void handleDropFromActive(Host dropped) {
 		if(dropped != null) {
-			triggerNotification(new NeighDown(dropped, (short) -1, (short) -1));
+			triggerNotification(new NeighDown(dropped, (short) -1, (short)-1));
 			sendMessage(new DisconnectMessage(), dropped);
 			logger.debug("Sent DisconnectMessage to {}", dropped);
 			passive.addPeer(dropped);
@@ -129,9 +120,9 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 	private void uponReceiveJoin(JoinMessage msg, Host from, short sourceProto, int channelId) {
 		logger.debug("Received {} from {}", msg, from);
 		Host h = active.addPeer(from);
-		logger.trace("Added to {} active{}", from, active);
 		openConnection(from);
-		triggerNotification(new NeighUp(from, (short) -1, (short) -1));
+		logger.trace("Added to {} active{}", from, active);
+		triggerNotification(new NeighUp(from, (short)-1, (short)-1));
 		sendMessage( new JoinReplyMessage(), from);
 		logger.debug("Sent JoinReplyMessage to {}", from);
 		handleDropFromActive(h);
@@ -151,7 +142,6 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 			passive.removePeer(from);
 			pending.remove(from);
 
-
 			Host h = active.addPeer(from);
 			openConnection(from);
 			logger.trace("Added to {} active{}", from, active);
@@ -168,8 +158,8 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 				pending.remove(msg.getNewHost());
 
 				Host h = active.addPeer(msg.getNewHost());
-				logger.trace("Added to {} active{}", msg.getNewHost(), active);
 				openConnection(msg.getNewHost());
+				logger.trace("Added to {} active{}", msg.getNewHost(), active);
 				triggerNotification(new NeighUp(msg.getNewHost(), (short) -1, (short) -1));
 				sendMessage(new JoinReplyMessage(), msg.getNewHost());
 				logger.debug("Sent JoinReplyMessage to {}", msg.getNewHost());
@@ -197,8 +187,8 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 				passive.removePeer(from);
 				logger.trace("Removed from {} passive{}", from, passive);
 				Host h = active.addPeer(from);
-				logger.trace("Added to {} active{}", from, active);
 				openConnection(from);
+				logger.trace("Added to {} active{}", from, active);
 				triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				handleDropFromActive(h);
 			}
@@ -213,14 +203,14 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 					passive.removePeer(from);
 					logger.trace("Removed from {} passive{}", from, passive);
 					active.addPeer(from);
-					logger.trace("Added to {} active{}", from, active);
 					openConnection(from);
+					logger.trace("Added to {} active{}", from, active);
 					triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				}
 				sendMessage(new HelloReplyMessage(true), from);
 				logger.debug("Sent HelloReplyMessage to {}", from);
 			} else {
-				sendMessage(new HelloReplyMessage(false), from, ProxyChannel.CONNECTION_IN);
+				sendMessage(new HelloReplyMessage(false), from, EmulatedChannel.CONNECTION_IN);
 				logger.debug("Sent HelloReplyMessage to {}", from);
 			}
 		}
@@ -234,8 +224,8 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 			if(!active.containsPeer(from)) {
 				timeout = originalTimeout;
 				Host h = active.addPeer(from);
-				logger.trace("Added to {} active{}", from, active);
 				openConnection(from);
+				logger.trace("Added to {} active{}", from, active);
 				triggerNotification(new NeighUp(from, (short) -1, (short) -1));
 				handleDropFromActive(h);
 			}
@@ -290,8 +280,6 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 				passive.addPeer(host);
 			}
 			logger.trace("After Passive{}", passive);
-			if(!active.containsPeer(msg.getOrigin()) && !pending.contains(msg.getOrigin()))
-				openConnection(msg.getOrigin());
 			sendMessage(new ShuffleReplyMessage(peers, msg.getSeqnum()), msg.getOrigin());
 			logger.debug("Sent ShuffleReplyMessage to {}", msg.getOrigin());
 		} else
@@ -345,7 +333,6 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 			Host h = passive.dropRandom();
 			if(h != null && pending.add(h)) {
 				logger.trace("Sending HelloMessage to {}, pending {}, active {}, passive {}", h, pending, active, passive);
-				openConnection(h);
 				sendMessage(new HelloMessage(getPriority()), h);
 				logger.debug("Sent HelloMessage to {}", h);
 				timeout = (short) (Math.min(timeout * 2, MAX_BACKOFF));
@@ -363,7 +350,7 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 	private void uponOutConnectionDown(OutConnectionDown event, int channelId) {
 		logger.trace("Host {} is down, active{}, cause: {}", event.getNode(), active, event.getCause());
 		if(active.removePeer(event.getNode())) {
-			triggerNotification(new NeighDown(event.getNode(), (short) -1, (short) -1));
+			triggerNotification(new NeighDown(event.getNode(), (short)-1, (short)-1));
 			if(!active.fullWithPending(pending)){
 				setupTimer(new HelloTimeout(), timeout);
 			}
@@ -374,7 +361,7 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 	private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
 		logger.trace("Connection to host {} failed, cause: {}", event.getNode(), event.getCause());
 		if(active.removePeer(event.getNode())) {
-			triggerNotification(new NeighDown(event.getNode(), (short) -1, (short) -1));
+			triggerNotification(new NeighDown(event.getNode(), (short)-1, (short)-1));
 			if(!active.fullWithPending(pending)){
 				setupTimer(new HelloTimeout(), timeout);
 			}
@@ -394,29 +381,18 @@ public class HyparView extends GenericProtocol implements OverlayProtocol {
 		logger.trace("Connection from host {} is down, active{}, cause: {}", event.getNode(), active, event.getCause());
 	}
 
+
 	@Override
 	public void init(Properties props) throws HandlerRegistrationException, IOException {
 		if (props.containsKey("contacts")) {
-			try {
-				String[] allContacts = props.getProperty("contacts").split(",");
+			List<Host> contacts = Contacts.parseContacts(props);
 
-				List<Host> contacts = new ArrayList<>(allContacts.length);
-				for(String contact : allContacts) {
-					String[] hostElems = contact.split(":");
-					contacts.add(new Host(InetAddress.getByName(hostElems[0]), Short.parseShort(hostElems[1])));
-				}
-
-				if(!contacts.get(0).equals(myself)) {
-					JoinMessage m = new JoinMessage();
-					openConnection(contacts.get(0));
-					sendMessage(m, contacts.get(0));
-					logger.debug("Sent JoinMessage to {}", contacts.get(0));
-					logger.trace("Sent " + m + " to " + contacts.get(0));
-				}
-			} catch (Exception e) {
-				System.err.println("Invalid contact on configuration: '" + props.getProperty("contacts"));
-				e.printStackTrace();
-				System.exit(-1);
+			if (!contacts.get(0).equals(myself)) {
+				JoinMessage m = new JoinMessage();
+				openConnection(contacts.get(0));
+				sendMessage(m, contacts.get(0));
+				logger.debug("Sent JoinMessage to {}", contacts.get(0));
+				logger.trace("Sent " + m + " to " + contacts.get(0));
 			}
 		}
 

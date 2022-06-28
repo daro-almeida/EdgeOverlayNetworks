@@ -1,8 +1,6 @@
 package protocols.overlays.cyclon;
 
 import protocols.overlays.OverlayProtocol;
-import protocols.overlays.biasLayerTree.notifications.NeighDown;
-import protocols.overlays.biasLayerTree.notifications.NeighUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
@@ -17,9 +15,9 @@ import protocols.overlays.cyclon.requests.MembershipReply;
 import protocols.overlays.cyclon.requests.MembershipRequest;
 import protocols.overlays.cyclon.timers.ShuffleTimer;
 import protocols.overlays.cyclon.utils.CacheView;
+import utils.Contacts;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.*;
 
 public class Cyclon extends GenericProtocol implements OverlayProtocol {
@@ -80,125 +78,90 @@ public class Cyclon extends GenericProtocol implements OverlayProtocol {
     }
 
 
-    /*--------------------------------- Messages ---------------------------------------- */
-    private void uponShuffle(ShuffleMessage msg, Host from, short sourceProto, int channelId) {
-        logger.debug("Received {} from {}", msg, from);
-        Map<Host, Integer> subset = cacheView.getRandomAgedSubset(msg.getSubset().size());
-        sendMessage(new ShuffleReplyMessage(subset), from, TCPChannel.CONNECTION_IN);
-        logger.debug("Sent ShuffleReplyMessage to {}", from);
-		removeNeighbourFromSubset(subset.keySet());
-		addNeighboursFromSubset(msg.getSubset());
-        cacheView.merge(msg.getSubset(), subset.keySet());
+	/*--------------------------------- Messages ---------------------------------------- */
+	private void uponShuffle(ShuffleMessage msg, Host from, short sourceProto, int channelId) {
+		logger.debug("Received {} from {}", msg, from);
+		Map<Host, Integer> subset = cacheView.getRandomAgedSubset(msg.getSubset().size());
+		sendMessage(new ShuffleReplyMessage(subset), from, TCPChannel.CONNECTION_IN);
+		logger.debug("Sent ShuffleReplyMessage to {}", from);
+		cacheView.merge(msg.getSubset(), subset.keySet());
+
 	}
 
 
-    private void uponShuffleReply(ShuffleReplyMessage msg, Host from, short sourceProto, int channelId) {
-        logger.debug("Received {} from {}", msg, from);
-        Set<Host> subset = ongoing.remove(from);
-		removeNeighbourFromSubset(subset);
-		addNeighboursFromSubset(msg.getSubset());
+	private void uponShuffleReply(ShuffleReplyMessage msg, Host from, short sourceProto, int channelId) {
+		logger.debug("Received {} from {}", msg, from);
+		Set<Host> subset = ongoing.remove(from);
 		cacheView.merge(msg.getSubset(), subset);
 		cacheView.putBack(from);
-    }
-
-	private void removeNeighbourFromSubset(Set<Host> subset) {
-		for (Host h : subset) {
-			if (cacheView.getCache().contains(h)) {
-				triggerNotification(new NeighDown(h, (short) -1, (short)-1));
-				closeConnection(h);
-				return;
-			}
-		}
-	}
-
-	private void addNeighboursFromSubset(Map<Host, Integer> subset) {
-		for (Host h : subset.keySet()) {
-			if (!h.equals(myself) && !cacheView.getCache().contains(h)) {
-				openConnection(h);
-				triggerNotification(new NeighUp(h, (short) -1, (short) -1));
-			}
-		}
 	}
 
 
 	/*--------------------------------- Timers ---------------------------------------- */
-    private void uponShuffleTime(ShuffleTimer timer, long timerId) {
-        logger.debug("Shuffle Time: cache{}", cacheView);
-        if(cacheView.getOrdered().size() > 0) {
-            cacheView.incAge();
-            Host target = cacheView.getOldest();
-            if(!ongoing.containsKey(target)) {
-                Map<Host, Integer> subset = cacheView.getRandomSubsetWith(subsetSize, target);
+	private void uponShuffleTime(ShuffleTimer timer, long timerId) {
+		logger.debug("Shuffle Time: cache{}", cacheView);
+		if(cacheView.getOrdered().size() > 0) {
+			cacheView.incAge();
+			Host target = cacheView.getOldest();
+			if(!ongoing.containsKey(target)) {
+				Map<Host, Integer> subset = cacheView.getRandomSubsetWith(subsetSize, target);
 
-                subset.remove(target);
-                subset.put(myself, 0);
-
+				subset.remove(target);
+				subset.put(myself, 0);
 				openConnection(target);
-                sendMessage(new ShuffleMessage(subset), target);
-                logger.debug("Sent ShuffleMessage to {}", target);
-                ongoing.put(target, subset.keySet());
-            }
-        }
-    }
-
-
-    /*--------------------------------- Requests ---------------------------------------- */
-    private void uponGetPeers(MembershipRequest request, short sourceProto) {
-        Set<Host> peers;
-        if(request.getFanout() <= 0)
-            peers = cacheView.getCache();
-        else
-            peers = cacheView.getRandomSubset(request.getFanout());
-
-        sendReply(new MembershipReply(peers), sourceProto);
-    }
-
-
-
-    /* --------------------------------- Channel Events ---------------------------- */
-
-    private void uponOutConnectionDown(OutConnectionDown event, int channelId) {
-        logger.trace("Connection to {} is down cause {}", event.getNode(), event.getCause());
-    }
-
-    private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
-        logger.trace("Connection to {} failed cause: {}", event.getNode(), event.getCause());
-        cacheView.removePeer(event.getNode());
-		triggerNotification(new NeighDown(event.getNode(), (short) -1, (short)-1));
+				sendMessage(new ShuffleMessage(subset), target);
+				logger.debug("Sent ShuffleMessage to {}", target);
+				ongoing.put(target, subset.keySet());
+			}
+		}
 	}
 
-    private void uponOutConnectionUp(OutConnectionUp event, int channelId) {
-        logger.trace("Connection to {} is up", event.getNode());
-    }
 
-    private void uponInConnectionUp(InConnectionUp event, int channelId) {
-        logger.trace("Connection from {} is up", event.getNode());
-    }
+	/*--------------------------------- Requests ---------------------------------------- */
+	private void uponGetPeers(MembershipRequest request, short sourceProto) {
+		Set<Host> peers;
+		if(request.getFanout() <= 0)
+			peers = cacheView.getCache();
+		else
+			peers = cacheView.getRandomSubset(request.getFanout());
 
-    private void uponInConnectionDown(InConnectionDown event, int channelId) {
-        logger.trace("Connection from {} is down, cause: {}", event.getNode(), event.getCause());
-    }
+		sendReply(new MembershipReply(peers), sourceProto);
+	}
+
+
+
+	/* --------------------------------- Channel Events ---------------------------- */
+
+	private void uponOutConnectionDown(OutConnectionDown event, int channelId) {
+		logger.trace("Connection to {} is down cause {}", event.getNode(), event.getCause());
+	}
+
+	private void uponOutConnectionFailed(OutConnectionFailed<ProtoMessage> event, int channelId) {
+		logger.trace("Connection to {} failed cause: {}", event.getNode(), event.getCause());
+		cacheView.removePeer(event.getNode());
+	}
+
+	private void uponOutConnectionUp(OutConnectionUp event, int channelId) {
+		logger.trace("Connection to {} is up", event.getNode());
+	}
+
+	private void uponInConnectionUp(InConnectionUp event, int channelId) {
+		logger.trace("Connection from {} is up", event.getNode());
+	}
+
+	private void uponInConnectionDown(InConnectionDown event, int channelId) {
+		logger.trace("Connection from {} is down, cause: {}", event.getNode(), event.getCause());
+	}
 
 	@Override
 	public void init(Properties props) throws HandlerRegistrationException, IOException {
 		if (props.containsKey("contacts")) {
-			try {
-				String[] allContacts = props.getProperty("contacts").split(",");
+			List<Host> contacts = Contacts.parseContacts(props);
 
-				for(String contact : allContacts) {
-					String[] hostElems = contact.split(":");
-					Host h = new Host(InetAddress.getByName(hostElems[0]), Short.parseShort(hostElems[1]));
-					if(!h.equals(myself)) {
-						cacheView.addPeer(h, 0);
-						openConnection(h);
-						triggerNotification(new NeighUp(h, (short)-1, (short)-1));
-					}
+			for(Host h : contacts) {
+				if(!h.equals(myself)) {
+					cacheView.addPeer(h, 0);
 				}
-
-			} catch (Exception e) {
-				System.err.println("Invalid contact on configuration: '" + props.getProperty("contacts"));
-				e.printStackTrace();
-				System.exit(-1);
 			}
 		}
 		setupPeriodicTimer(new ShuffleTimer(), this.shuffleTime, this.shuffleTime);

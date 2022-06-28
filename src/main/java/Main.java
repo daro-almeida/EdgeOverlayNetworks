@@ -1,4 +1,4 @@
-import channels.ProxyChannelInitializer;
+import channels.EmulatedChannelInitializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.dissemination.flood.FloodGossip;
@@ -14,8 +14,9 @@ import protocols.tester.DisseminationConsumer;
 import protocols.tester.OverlayConsumer;
 import protocols.tester.TmanTester;
 import pt.unl.fct.di.novasys.babel.core.Babel;
-import pt.unl.fct.di.novasys.channel.proxy.ProxyChannel;
+import pt.unl.fct.di.novasys.channel.emulation.EmulatedChannel;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.Contacts;
 import utils.Translate;
 
 import java.net.InetAddress;
@@ -28,7 +29,7 @@ public class Main {
     }
 
     private static final String DEFAULT_CONF = "config/network_config.properties";
-    public static final String PROTO_CHANNELS = ProxyChannel.NAME;
+    public static final String PROTO_CHANNELS = EmulatedChannel.NAME;
 
     private static final Logger logger = LogManager.getLogger(Main.class);
 
@@ -39,18 +40,22 @@ public class Main {
         Properties props = Babel.loadConfig(args, DEFAULT_CONF);
         props.setProperty("nThreads", "4");
 
-		props.setProperty(ProxyChannel.ADDRESS_KEY, props.getProperty(ProxyChannel.ADDRESS_KEY)); //The address to bind to
-		props.setProperty(ProxyChannel.PORT_KEY, props.getProperty(ProxyChannel.PORT_KEY)); //The port to bind to
-		props.setProperty(ProxyChannel.RELAY_ADDRESS_KEY, props.getProperty(ProxyChannel.RELAY_ADDRESS_KEY));
-		props.setProperty(ProxyChannel.RELAY_PORT, props.getProperty(ProxyChannel.RELAY_PORT));
+		props.setProperty(EmulatedChannel.ADDRESS_KEY, props.getProperty(EmulatedChannel.ADDRESS_KEY)); //The address to bind to
+		props.setProperty(EmulatedChannel.PORT_KEY, props.getProperty(EmulatedChannel.PORT_KEY)); //The port to bind to
+		props.setProperty(EmulatedChannel.RELAY_ADDRESS_KEY, props.getProperty(EmulatedChannel.RELAY_ADDRESS_KEY));
+		props.setProperty(EmulatedChannel.RELAY_PORT, props.getProperty(EmulatedChannel.RELAY_PORT));
 		
 		String overlay = props.getProperty("overlay");
 		String dissemination = props.getProperty("dissemination");
 
         //babel.registerChannelInitializer(PROTO_CHANNELS, new MultiChannelInitializer());
-        babel.registerChannelInitializer(PROTO_CHANNELS, new ProxyChannelInitializer());
+        babel.registerChannelInitializer(PROTO_CHANNELS, new EmulatedChannelInitializer());
         Host myself =  new Host(InetAddress.getByName(props.getProperty("address")),
                 Integer.parseInt(props.getProperty("port")));
+
+		if (!Contacts.parseContacts(props).contains(myself)) {
+			Thread.sleep(5000);
+		}
 
         logger.info("Hello, I am {}", myself);
 
@@ -96,9 +101,9 @@ public class Main {
 				babel.registerProtocol(cyclon);
 				cyclon.init(props);
 
-//				CyclonTester cyclonTester = new CyclonTester();
-//				babel.registerProtocol(cyclonTester);
-//				cyclonTester.init(props);
+				CyclonTester cyclonTester = new CyclonTester();
+				babel.registerProtocol(cyclonTester);
+				cyclonTester.init(props);
 				break;
 			default:
 				logger.error("Overlay {} is invalid", overlay);
